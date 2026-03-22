@@ -256,6 +256,7 @@
             var buttonId = 'ai-content-master-sge-optimize-btn';
             var reqKey   = 'sge_optimize';
             var $status  = $('#ai-content-master-sge-status');
+            var $spinner = $('#ai-content-master-seo-spinner');
 
             if (isRequesting(reqKey)) {
                 $status.css('color', 'orange').text('Optimization in progress — please wait...');
@@ -266,7 +267,9 @@
                 return;
             }
 
-            showSpinner(buttonId);
+            // Disable both SEO section buttons during request.
+            $('#ai-content-master-analyze-seo-btn, #ai-content-master-sge-optimize-btn').prop('disabled', true);
+            $spinner.css('visibility', 'visible').show();
             $status.css('color', '#2271b1').text('⏳ Optimizing for AI Search & SGE... This may take up to 60 seconds.');
 
             $.ajax({
@@ -305,7 +308,8 @@
                 },
                 complete: function () {
                     clearRequesting(reqKey);
-                    hideSpinner(buttonId);
+                    $('#ai-content-master-analyze-seo-btn, #ai-content-master-sge-optimize-btn').prop('disabled', false);
+                    $spinner.css('visibility', 'hidden').hide();
                 }
             });
         });

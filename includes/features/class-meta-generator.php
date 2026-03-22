@@ -86,6 +86,10 @@ class AI_Content_Master_Meta_Generator {
             $seo_plugin = $this->detect_seo_plugin();
             $saved      = $this->save_meta_to_post( $post_id, $clean, $seo_plugin );
 
+            if ( defined('WP_DEBUG') && WP_DEBUG ) {
+                error_log( 'AI Content Master: Meta saved. Plugin detected: ' . $seo_plugin . ', saved: ' . ( $saved ? 'yes' : 'no' ) . ', post_id: ' . $post_id );
+            }
+
             wp_send_json_success(array(
                 'meta_description' => $clean,
                 'seo_plugin'       => $seo_plugin,
@@ -146,15 +150,22 @@ class AI_Content_Master_Meta_Generator {
      * @return string 'yoast' | 'rankmath' | 'seopress' | 'aioseo' | 'none'
      */
     private function detect_seo_plugin() {
+        // Yoast SEO
         if ( defined( 'WPSEO_VERSION' ) || class_exists( 'WPSEO_Options' ) ) {
             return 'yoast';
         }
-        if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath' ) ) {
+        // Rank Math — uses RankMath namespace, check multiple indicators
+        if ( defined( 'RANK_MATH_VERSION' )
+            || class_exists( 'RankMath' )
+            || class_exists( 'RankMath\RankMath' )
+            || function_exists( 'rank_math' ) ) {
             return 'rankmath';
         }
-        if ( defined( 'SEOPRESS_VERSION' ) || class_exists( 'SeoPress' ) ) {
+        // SEOPress
+        if ( defined( 'SEOPRESS_VERSION' ) || function_exists( 'seopress_init' ) ) {
             return 'seopress';
         }
+        // All in One SEO
         if ( defined( 'AIOSEO_VERSION' ) || class_exists( 'AIOSEO\Plugin\AIOSEO' ) ) {
             return 'aioseo';
         }
