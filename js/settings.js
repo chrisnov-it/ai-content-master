@@ -121,6 +121,7 @@
         $idLabel = $('#ai-cm-model-id-display');
         $status  = $('#ai-cm-model-status');
         $refresh = $('#ai-cm-refresh-models-btn');
+        var $ping = $('#ai-cm-ping-test-btn');
 
         if (!$select.length) return;  // not on the settings page
 
@@ -190,5 +191,57 @@
             });
         });
     });
+
+        /* ── Test Connection button ────────────────────────────────────── */
+        $ping.on('click', function () {
+            if ($ping.prop('disabled')) return;
+
+            $ping.prop('disabled', true).addClass('spinning');
+            $status
+                .removeClass('error success')
+                .addClass('info')
+                .text('🔌 Testing connection to OpenRouter...');
+
+            $.ajax({
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 30000,
+                data: {
+                    action:   'ai_content_master_ping_test',
+                    security: aiContentMasterAjax.nonce,
+                },
+                success: function (response) {
+                    if (response.success) {
+                        var d = response.data;
+                        $status
+                            .removeClass('error info')
+                            .addClass('success')
+                            .html(
+                                '✅ Connected! Model: <strong>' + d.model + '</strong> ' +
+                                '→ replied <em>"' + d.reply + '"</em> ' +
+                                'in <strong>' + d.elapsed + '</strong>'
+                            );
+                    } else {
+                        var d = response.data;
+                        $status
+                            .removeClass('info success')
+                            .addClass('error')
+                            .html(
+                                '❌ Failed after ' + (d.elapsed || '?') + ': ' + (d.message || 'Unknown error') +
+                                '<br><small>Model: ' + (d.model || '?') + '</small>'
+                            );
+                    }
+                },
+                error: function (jqXHR, textStatus) {
+                    $status
+                        .removeClass('info success')
+                        .addClass('error')
+                        .text('❌ AJAX error: ' + textStatus + ' — WordPress could not reach OpenRouter.');
+                },
+                complete: function () {
+                    $ping.prop('disabled', false).removeClass('spinning');
+                }
+            });
+        });
 
 })(jQuery);

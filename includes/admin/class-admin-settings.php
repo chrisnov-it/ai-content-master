@@ -170,6 +170,11 @@ class AI_Content_Master_Admin_Settings {
                 <span class="dashicons dashicons-update"></span>
                 <?php esc_html_e( 'Refresh Models', 'ai-content-master' ); ?>
             </button>
+
+            <button type="button" id="ai-cm-ping-test-btn" class="button button-secondary">
+                <span class="dashicons dashicons-networking"></span>
+                <?php esc_html_e( 'Test Connection', 'ai-content-master' ); ?>
+            </button>
         </div>
 
         <!-- Model info bar (shown dynamically via JS) -->

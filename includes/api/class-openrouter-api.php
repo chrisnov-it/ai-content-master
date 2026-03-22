@@ -162,7 +162,8 @@ class AI_Content_Master_OpenRouter_API {
         );
 
         if ( defined('WP_DEBUG') && WP_DEBUG ) {
-            error_log( 'AI Content Master API: Making API call. Model: ' . ( $request_data['model'] ?? 'unknown' ) . ', Timeout: ' . self::REQUEST_TIMEOUT . 's' );
+            error_log( 'AI Content Master API: Making API call. Model: ' . ( $request_data['model'] ?? 'unknown' ) . ', Timeout: ' . self::REQUEST_TIMEOUT . 's, Socket timeout: ' . ini_get('default_socket_timeout') . 's' );
+            error_log( 'AI Content Master API: Call started at: ' . date('H:i:s') );
         }
 
         $response = wp_remote_post( self::API_URL, $args );
@@ -170,6 +171,10 @@ class AI_Content_Master_OpenRouter_API {
         // Always restore everything immediately after the request.
         remove_filter( 'http_request_timeout', $timeout_filter );
         ini_set( 'default_socket_timeout', $prev_socket_timeout );
+
+        if ( defined('WP_DEBUG') && WP_DEBUG ) {
+            error_log( 'AI Content Master API: Call finished at: ' . date('H:i:s') );
+        }
 
         if ( is_wp_error( $response ) ) {
             $error_msg = $response->get_error_message();
@@ -372,6 +377,75 @@ class AI_Content_Master_OpenRouter_API {
         uasort( $paid, function( $a, $b ) { return strcmp( $a['name'], $b['name'] ); } );
 
         return array_merge( $free, $paid );
+    }
+
+    /**
+     * AJAX handler: quick connectivity test to OpenRouter.
+     * Tests a minimal API call with a tiny prompt to check reachability & auth.
+     */
+    public function ajax_ping_test() {
+        if ( ! check_ajax_referer( 'ai_content_master_ajax_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed.' ), 403 );
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied.' ), 403 );
+            return;
+        }
+
+        $start = microtime( true );
+
+        // Temporarily bump socket timeout for this test.
+        $prev = ini_get( 'default_socket_timeout' );
+        ini_set( 'default_socket_timeout', 30 );
+        add_filter( 'http_request_timeout', function() { return 25; } );
+
+        $api_key = get_option( 'ai_content_master_openrouter_api_key' );
+        $model   = get_option( 'ai_content_master_openrouter_model', self::DEFAULT_MODEL );
+
+        $response = wp_remote_post( self::API_URL, array(
+            'method'      => 'POST',
+            'headers'     => array(
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer ' . $api_key,
+            ),
+            'body'        => wp_json_encode( array(
+                'model'      => $model,
+                'max_tokens' => 5,
+                'messages'   => array(
+                    array( 'role' => 'user', 'content' => 'Reply with just the word OK.' ),
+                ),
+            ) ),
+            'timeout'     => 25,
+            'httpversion' => '1.1',
+            'sslverify'   => true,
+        ) );
+
+        ini_set( 'default_socket_timeout', $prev );
+        remove_all_filters( 'http_request_timeout' );
+
+        $elapsed = round( microtime( true ) - $start, 2 );
+
+        if ( is_wp_error( $response ) ) {
+            wp_send_json_error( array(
+                'message' => $response->get_error_message(),
+                'elapsed' => $elapsed . 's',
+                'model'   => $model,
+            ) );
+            return;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $reply = $body['choices'][0]['message']['content'] ?? '(no content)';
+
+        wp_send_json_success( array(
+            'http_code' => $code,
+            'model'     => $model,
+            'reply'     => trim( $reply ),
+            'elapsed'   => $elapsed . 's',
+        ) );
     }
 
     /**

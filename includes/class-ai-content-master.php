@@ -126,7 +126,9 @@ class AI_Content_Master {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'init_plugin'));
         // AJAX: fetch/refresh model list (settings page)
-        add_action('wp_ajax_ai_content_master_fetch_models', array($this->components['api'], 'ajax_fetch_models'));
+        add_action( 'wp_ajax_ai_content_master_fetch_models', array( $this->components['api'], 'ajax_fetch_models' ) );
+        // AJAX: connectivity ping test (settings page)
+        add_action( 'wp_ajax_ai_content_master_ping_test', array( $this->components['api'], 'ajax_ping_test' ) );
     }
 
     /**
