@@ -23,13 +23,15 @@ class AI_Content_Master_Article_Generator {
      *
      * @return AI_Content_Master_OpenRouter_API
      */
+    /**
+     * Lazy getter — return Provider_Manager yang sudah resolved ke provider aktif.
+     *
+     * @return AI_Content_Master_Provider_Manager
+     */
     private function get_api() {
         return AI_Content_Master::get_instance()->get_component( 'api' );
     }
 
-    /**
-     * Initialize the feature
-     */
     public function init() {
         add_action('wp_ajax_ai_content_master_generate_article', array($this, 'handle_ajax_request'));
     }

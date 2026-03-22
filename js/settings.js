@@ -192,7 +192,39 @@
         });
     });
 
-        /* ── Test Connection button ────────────────────────────────────── */
+        /* ── Gemini Test Connection button ──────────────────────────────── */
+        $('#ai-cm-gemini-ping-btn').on('click', function () {
+            var $btn    = $(this);
+            var $status = $('#ai-cm-gemini-ping-status');
+
+            if ($btn.prop('disabled')) return;
+            $btn.prop('disabled', true).addClass('spinning');
+            $status.removeClass('error success').css('color','#2271b1').text('🔌 Testing Gemini connection...');
+
+            $.ajax({
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 30000,
+                data:    { action: 'ai_content_master_gemini_ping_test', security: aiContentMasterAjax.nonce },
+                success: function (r) {
+                    if (r.success) {
+                        $status.css('color','#065f46').html(
+                            '✅ Connected! Model: <strong>' + r.data.model + '</strong> → <em>"' + r.data.reply + '"</em> in <strong>' + r.data.elapsed + '</strong>'
+                        );
+                    } else {
+                        $status.css('color','#b91c1c').html(
+                            '❌ ' + (r.data.message || 'Unknown error') + (r.data.elapsed ? ' (' + r.data.elapsed + ')' : '')
+                        );
+                    }
+                },
+                error: function (x, t) {
+                    $status.css('color','#b91c1c').text('❌ AJAX error: ' + t);
+                },
+                complete: function () { $btn.prop('disabled', false).removeClass('spinning'); }
+            });
+        });
+
+        /* ── OpenRouter Test Connection button ───────────────────────────── */
         $ping.on('click', function () {
             if ($ping.prop('disabled')) return;
 

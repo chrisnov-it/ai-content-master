@@ -42,56 +42,84 @@ class AI_Content_Master_Admin_Settings {
      * Register plugin settings
      */
     public function register_settings() {
-        register_setting(
-            'ai_content_master_settings_group',
-            'ai_content_master_openrouter_api_key',
-            array(
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            )
-        );
 
-        register_setting(
-            'ai_content_master_settings_group',
-            'ai_content_master_openrouter_model',
-            array(
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => 'meta-llama/llama-3.3-70b-instruct:free',
-            )
-        );
+        // ── Active Provider ────────────────────────────────────────────────
+        register_setting( 'ai_content_master_settings_group', 'ai_content_master_active_provider', array(
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'openrouter',
+        ) );
 
-        add_settings_section(
-            'ai_content_master_api_settings_section',
-            __('API Configuration', 'ai-content-master'),
-            array($this, 'api_settings_section_callback'),
-            'ai-content-master'
-        );
+        // ── OpenRouter ─────────────────────────────────────────────────────
+        register_setting( 'ai_content_master_settings_group', 'ai_content_master_openrouter_api_key', array(
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => '',
+        ) );
+        register_setting( 'ai_content_master_settings_group', 'ai_content_master_openrouter_model', array(
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'meta-llama/llama-3.3-70b-instruct:free',
+        ) );
 
-        add_settings_field(
-            'ai_content_master_api_key_field',
-            __('OpenRouter API Key', 'ai-content-master'),
-            array($this, 'api_key_field_render'),
-            'ai-content-master',
-            'ai_content_master_api_settings_section'
-        );
+        // ── Gemini ─────────────────────────────────────────────────────────
+        register_setting( 'ai_content_master_settings_group', 'ai_content_master_gemini_api_key', array(
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => '',
+        ) );
+        register_setting( 'ai_content_master_settings_group', 'ai_content_master_gemini_model', array(
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gemini-2.0-flash',
+        ) );
 
-        add_settings_field(
-            'ai_content_master_model_field',
-            __('AI Model', 'ai-content-master'),
-            array($this, 'model_field_render'),
-            'ai-content-master',
-            'ai_content_master_api_settings_section'
-        );
+        // ── Section: Provider Selector ─────────────────────────────────────
+        add_settings_section( 'ai_cm_provider_section', __( 'Active AI Provider', 'ai-content-master' ),
+            array( $this, 'provider_section_callback' ), 'ai-content-master' );
+        add_settings_field( 'ai_cm_active_provider', __( 'Use Provider', 'ai-content-master' ),
+            array( $this, 'active_provider_field_render' ), 'ai-content-master', 'ai_cm_provider_section' );
+
+        // ── Section: OpenRouter ────────────────────────────────────────────
+        add_settings_section( 'ai_content_master_api_settings_section',
+            __( 'OpenRouter', 'ai-content-master' ),
+            array( $this, 'api_settings_section_callback' ), 'ai-content-master' );
+        add_settings_field( 'ai_content_master_api_key_field', __( 'API Key', 'ai-content-master' ),
+            array( $this, 'api_key_field_render' ), 'ai-content-master', 'ai_content_master_api_settings_section' );
+        add_settings_field( 'ai_content_master_model_field', __( 'Model', 'ai-content-master' ),
+            array( $this, 'model_field_render' ), 'ai-content-master', 'ai_content_master_api_settings_section' );
+
+        // ── Section: Gemini ────────────────────────────────────────────────
+        add_settings_section( 'ai_cm_gemini_section', __( 'Google Gemini (AI Studio)', 'ai-content-master' ),
+            array( $this, 'gemini_section_callback' ), 'ai-content-master' );
+        add_settings_field( 'ai_cm_gemini_api_key', __( 'API Key', 'ai-content-master' ),
+            array( $this, 'gemini_api_key_field_render' ), 'ai-content-master', 'ai_cm_gemini_section' );
+        add_settings_field( 'ai_cm_gemini_model', __( 'Model', 'ai-content-master' ),
+            array( $this, 'gemini_model_field_render' ), 'ai-content-master', 'ai_cm_gemini_section' );
+    }
+
+    // ── Section Callbacks ──────────────────────────────────────────────────
+
+    public function provider_section_callback() {
+        echo '<p>' . esc_html__( 'Choose which AI provider to use. If the active provider is rate-limited, the plugin will automatically fall back to the other configured provider.', 'ai-content-master' ) . '</p>';
+    }
+
+    public function active_provider_field_render() {
+        $active = get_option( 'ai_content_master_active_provider', 'openrouter' );
+        ?>
+        <label style="margin-right:20px;">
+            <input type="radio" name="ai_content_master_active_provider" value="openrouter" <?php checked( $active, 'openrouter' ); ?>>
+            <?php esc_html_e( 'OpenRouter', 'ai-content-master' ); ?>
+        </label>
+        <label>
+            <input type="radio" name="ai_content_master_active_provider" value="gemini" <?php checked( $active, 'gemini' ); ?>>
+            <?php esc_html_e( 'Google Gemini (AI Studio)', 'ai-content-master' ); ?>
+        </label>
+        <p class="description"><?php esc_html_e( 'Both providers can be configured simultaneously for automatic fallback.', 'ai-content-master' ); ?></p>
+        <?php
     }
 
     /**
      * API settings section callback
      */
     public function api_settings_section_callback() {
-        echo '<p>' . esc_html__('Enter your OpenRouter API Key below. You can generate one from', 'ai-content-master') .
-             ' <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a>.</p>';
+        echo '<p>' . esc_html__( 'Access hundreds of AI models through a single API key.', 'ai-content-master' ) .
+             ' <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Get your free API key →', 'ai-content-master' ) . '</a></p>';
+    }
+
+    public function gemini_section_callback() {
+        echo '<p>' . esc_html__( 'Google AI Studio offers a generous free tier: 1,500 requests/day with Gemini 2.0 Flash. No billing required.', 'ai-content-master' ) .
+             ' <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Get your free API key →', 'ai-content-master' ) . '</a></p>';
     }
 
     /**
@@ -189,6 +217,51 @@ class AI_Content_Master_Admin_Settings {
         <p class="description">
             <?php esc_html_e( 'Free models are listed first and cost nothing to use. Click "Refresh Models" to fetch the latest list from OpenRouter.', 'ai-content-master' ); ?>
         </p>
+        <?php
+    }
+
+    // ── Gemini Field Renders ───────────────────────────────────────────────
+
+    public function gemini_api_key_field_render() {
+        $key = get_option( 'ai_content_master_gemini_api_key' );
+        ?>
+        <input type="password" name="ai_content_master_gemini_api_key"
+               value="<?php echo esc_attr( $key ); ?>" class="regular-text">
+        <button type="button" id="ai-cm-gemini-ping-btn" class="button button-secondary" style="margin-left:8px;">
+            <span class="dashicons dashicons-networking"></span>
+            <?php esc_html_e( 'Test Connection', 'ai-content-master' ); ?>
+        </button>
+        <p class="description">
+            <?php esc_html_e( 'Get your free API key from', 'ai-content-master' ); ?>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+            <?php esc_html_e( 'Free tier: 1,500 requests/day, no credit card required.', 'ai-content-master' ); ?>
+        </p>
+        <p id="ai-cm-gemini-ping-status" style="font-size:12px;min-height:18px;"></p>
+        <?php
+    }
+
+    public function gemini_model_field_render() {
+        $selected = get_option( 'ai_content_master_gemini_model', 'gemini-2.0-flash' );
+        $api_key  = get_option( 'ai_content_master_gemini_api_key' );
+        $api      = AI_Content_Master::get_instance()->get_component( 'api' )->get_provider( 'gemini' );
+        $models   = ! empty( $api_key ) ? $api->fetch_available_models() : $api->fetch_available_models();
+        ?>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <select name="ai_content_master_gemini_model" id="ai-cm-gemini-model" style="min-width:280px;font-size:13px;">
+                <?php foreach ( ( is_wp_error( $models ) ? array() : $models ) as $id => $info ) : ?>
+                    <option value="<?php echo esc_attr( $id ); ?>" <?php selected( $selected, $id ); ?>>
+                        <?php echo esc_html( $info['name'] ); ?>
+                    </option>
+                <?php endforeach; ?>
+                <?php if ( is_wp_error( $models ) ) : ?>
+                    <option value="gemini-2.0-flash" selected>Gemini 2.0 Flash</option>
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                <?php endif; ?>
+            </select>
+        </div>
+        <p class="description"><?php esc_html_e( 'Recommended: Gemini 2.0 Flash — fastest with 1M token context window.', 'ai-content-master' ); ?></p>
         <?php
     }
 

@@ -68,8 +68,11 @@ class AI_Content_Master {
      * Load plugin dependencies
      */
     private function load_dependencies() {
-        // Include required class files
+        // API layer: base class harus di-load pertama.
+        require_once AI_CONTENT_MASTER_DIR . 'includes/api/class-provider-base.php';
         require_once AI_CONTENT_MASTER_DIR . 'includes/api/class-openrouter-api.php';
+        require_once AI_CONTENT_MASTER_DIR . 'includes/api/class-gemini-api.php';
+        require_once AI_CONTENT_MASTER_DIR . 'includes/api/class-provider-manager.php';
         require_once AI_CONTENT_MASTER_DIR . 'includes/admin/class-admin-settings.php';
         require_once AI_CONTENT_MASTER_DIR . 'includes/admin/class-admin-meta-box.php';
         require_once AI_CONTENT_MASTER_DIR . 'includes/admin/class-admin-scripts.php';
@@ -88,9 +91,9 @@ class AI_Content_Master {
      * Admin components hanya di-instantiate di area admin.
      */
     private function init_components() {
-        // API handler selalu dibutuhkan — tapi TIDAK fetch model di sini.
-        $this->components['api'] = new AI_Content_Master_OpenRouter_API();
-        $this->init_component( $this->components['api'] );
+        // Provider manager: router yang pilih provider aktif (OpenRouter/Gemini/dll).
+        $this->components['api'] = new AI_Content_Master_Provider_Manager();
+        // Provider manager tidak punya init() — langsung siap dipakai.
 
         // Admin components: hanya di admin area, dan hanya hook — tidak fetch data.
         if ( is_admin() ) {
@@ -125,10 +128,15 @@ class AI_Content_Master {
     private function init_hooks() {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'init_plugin'));
-        // AJAX: fetch/refresh model list (settings page)
-        add_action( 'wp_ajax_ai_content_master_fetch_models', array( $this->components['api'], 'ajax_fetch_models' ) );
-        // AJAX: connectivity ping test (settings page)
-        add_action( 'wp_ajax_ai_content_master_ping_test', array( $this->components['api'], 'ajax_ping_test' ) );
+        // AJAX: OpenRouter — fetch models + ping test.
+        $openrouter = $this->components['api']->get_provider( 'openrouter' );
+        add_action( 'wp_ajax_ai_content_master_fetch_models',      array( $openrouter, 'ajax_fetch_models' ) );
+        add_action( 'wp_ajax_ai_content_master_ping_test',         array( $openrouter, 'ajax_ping_test' ) );
+
+        // AJAX: Gemini — fetch models + ping test.
+        $gemini = $this->components['api']->get_provider( 'gemini' );
+        add_action( 'wp_ajax_ai_content_master_gemini_fetch_models', array( $gemini, 'ajax_fetch_models' ) );
+        add_action( 'wp_ajax_ai_content_master_gemini_ping_test',    array( $gemini, 'ajax_ping_test' ) );
     }
 
     /**

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class AI_Content_Master_OpenRouter_API
  */
-class AI_Content_Master_OpenRouter_API {
+class AI_Content_Master_OpenRouter_API extends AI_Content_Master_Provider_Base {
 
     /**
      * API endpoint URL
@@ -37,17 +37,17 @@ class AI_Content_Master_OpenRouter_API {
      * @param string $prompt The text prompt to send.
      * @return string|WP_Error The generated text on success, or WP_Error on failure.
      */
-    public function send_prompt($prompt) {
-        // Extend PHP execution time for this request only.
-        // Free models can take 30-90s; default PHP timeout is often 30s.
-        $original_time_limit = (int) ini_get('max_execution_time');
-        if ( $original_time_limit > 0 && $original_time_limit < self::REQUEST_TIMEOUT + 30 ) {
-            @set_time_limit( self::REQUEST_TIMEOUT + 30 );
-        }
+    public function get_provider_name() {
+        return 'OpenRouter';
+    }
 
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('AI Content Master API: Entered send_prompt function.');
-        }
+    public function is_configured() {
+        return ! empty( get_option( 'ai_content_master_openrouter_api_key' ) );
+    }
+
+    public function send_prompt($prompt) {
+        $this->prepare_execution_environment();
+        $this->log( 'Entered send_prompt.' );
 
         // Rate limiting: a user can only make one request every 30 seconds.
         $user_id = get_current_user_id();
@@ -139,11 +139,6 @@ class AI_Content_Master_OpenRouter_API {
         $timeout_filter = function() { return self::REQUEST_TIMEOUT; };
         add_filter( 'http_request_timeout', $timeout_filter );
 
-        // Override default_socket_timeout (PHP ini, default 60s) for this request.
-        // Without this, PHP kills the socket before WP timeout fires on long AI responses.
-        $prev_socket_timeout = ini_get( 'default_socket_timeout' );
-        ini_set( 'default_socket_timeout', self::REQUEST_TIMEOUT + 10 );
-
         $args = array(
             'method'      => 'POST',
             'headers'     => array(
@@ -168,9 +163,8 @@ class AI_Content_Master_OpenRouter_API {
 
         $response = wp_remote_post( self::API_URL, $args );
 
-        // Always restore everything immediately after the request.
         remove_filter( 'http_request_timeout', $timeout_filter );
-        ini_set( 'default_socket_timeout', $prev_socket_timeout );
+        $this->restore_execution_environment();
 
         if ( defined('WP_DEBUG') && WP_DEBUG ) {
             error_log( 'AI Content Master API: Call finished at: ' . date('H:i:s') );
