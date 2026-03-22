@@ -38,6 +38,13 @@ class AI_Content_Master_OpenRouter_API {
      * @return string|WP_Error The generated text on success, or WP_Error on failure.
      */
     public function send_prompt($prompt) {
+        // Extend PHP execution time for this request only.
+        // Free models can take 30-90s; default PHP timeout is often 30s.
+        $original_time_limit = (int) ini_get('max_execution_time');
+        if ( $original_time_limit > 0 && $original_time_limit < self::REQUEST_TIMEOUT + 30 ) {
+            @set_time_limit( self::REQUEST_TIMEOUT + 30 );
+        }
+
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log('AI Content Master API: Entered send_prompt function.');
         }
@@ -119,31 +126,57 @@ class AI_Content_Master_OpenRouter_API {
      * @param string $api_key API key.
      * @return array|WP_Error Response data or error.
      */
+    /**
+     * Timeout in seconds for API calls.
+     * High value needed because free models on OpenRouter can be slow.
+     */
+    const REQUEST_TIMEOUT = 120;
+
     private function make_api_call($request_data, $api_key) {
+        // Force WordPress to respect our timeout value.
+        // The default WP HTTP timeout filter can override the 'timeout' arg,
+        // so we hook in to guarantee our value wins for this request only.
+        $timeout_filter = function() { return self::REQUEST_TIMEOUT; };
+        add_filter( 'http_request_timeout', $timeout_filter );
+
         $args = array(
             'method'      => 'POST',
             'headers'     => array(
-                'Content-Type' => 'application/json',
+                'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer ' . $api_key,
+                'HTTP-Referer'  => get_site_url(),
+                'X-Title'       => get_bloginfo( 'name' ),
             ),
-            'body'        => wp_json_encode($request_data),
-            'timeout'     => 180,
-            'redirection' => 5,
+            'body'        => wp_json_encode( $request_data ),
+            'timeout'     => self::REQUEST_TIMEOUT,
+            'redirection' => 3,
             'blocking'    => true,
-            'httpversion' => '1.0',
+            'httpversion' => '1.1',
             'sslverify'   => true,
             'data_format' => 'body',
         );
 
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('AI Content Master API: Making API call to ' . self::API_URL);
+        if ( defined('WP_DEBUG') && WP_DEBUG ) {
+            error_log( 'AI Content Master API: Making API call. Model: ' . ( $request_data['model'] ?? 'unknown' ) . ', Timeout: ' . self::REQUEST_TIMEOUT . 's' );
         }
 
-        $response = wp_remote_post(self::API_URL, $args);
+        $response = wp_remote_post( self::API_URL, $args );
 
-        if (is_wp_error($response)) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('AI Content Master API: wp_remote_post returned WP_Error: ' . $response->get_error_message());
+        // Always remove our filter immediately after the request.
+        remove_filter( 'http_request_timeout', $timeout_filter );
+
+        if ( is_wp_error( $response ) ) {
+            $error_msg = $response->get_error_message();
+            if ( defined('WP_DEBUG') && WP_DEBUG ) {
+                error_log( 'AI Content Master API: wp_remote_post WP_Error: ' . $error_msg );
+            }
+            // Give user a friendlier message for timeout errors.
+            if ( strpos( strtolower( $error_msg ), 'timed out' ) !== false
+                || strpos( strtolower( $error_msg ), 'timeout' ) !== false ) {
+                return new WP_Error(
+                    'api_timeout',
+                    __( 'The AI model took too long to respond. Please try again, or switch to a faster model (e.g. Gemini Flash).', 'ai-content-master' )
+                );
             }
             return $response;
         }

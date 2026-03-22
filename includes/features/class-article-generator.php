@@ -94,21 +94,67 @@ class AI_Content_Master_Article_Generator {
     }
 
 	/**
-	 * Prepare article generation prompt
+	 * Prepare article generation prompt — optimized for international tech blog,
+	 * SGE/AI Overview targeting, FAQ schema, and code snippet support.
 	 *
 	 * @param string $topic The article topic.
 	 * @return string The generation prompt.
 	 */
 	private function prepare_generation_prompt( $topic ) {
 		return sprintf(
-			"You are an expert content strategist and professional writer specialized in 'Search Generative Experience' (SGE). Write a comprehensive, high-quality blog post about: '%s'.\n\n" .
-			"GUIDELINES FOR AI/SGE OPTIMIZATION:\n" .
-			"1. **Direct Answer Block**: Start with a concise 'In short' or 'Key Takeaway' section that answers the main intent of the topic in 40-60 words. This is to increase chances of being featured in AI summaries.\n" .
-			"2. **EEAT & Proof**: Use phrases like 'Based on our experience,' 'Experts suggest,' or reference industry data to show authority. (Note: Use professional placeholders for specific stats if unknown).\n" .
-			"3. **Structured for Skimming**: Use clear H2 and H3 headings. Include at least one informative bulleted or numbered list.\n" .
-			"4. **Semantic Coverage**: Naturally include related sub-topics and answer at least two common 'People Also Ask' questions within the text.\n" .
-			"5. **Format**: Provide the output in clean HTML. Start with the title in an <h1> tag.\n\n" .
-			"Tone: Professional yet conversational, highly authoritative, and extremely helpful.",
+			<<<'PROMPT'
+			You are a senior technical writer and SEO strategist for an international English-language tech blog. Your goal is to write an article that ranks in Google AI Overviews, wins Featured Snippets, and is genuinely useful to a global developer/tech audience.
+
+			TOPIC: "%s"
+
+			--- STRUCTURE REQUIREMENTS ---
+
+			1. TITLE (H1)
+			   - Write one strong, click-worthy H1 title.
+			   - Format: <h1>Your Title Here</h1>
+			   - Include the main keyword naturally. Keep it under 65 characters.
+
+			2. QUICK ANSWER BLOCK (for AI Overview / Featured Snippet)
+			   - Immediately after the H1, write a <div class="quick-answer"> block.
+			   - Contains a <strong>TL;DR:</strong> or <strong>Quick Answer:</strong> followed by a concise 40-60 word direct answer to the topic's main intent.
+			   - This is the most important section — write it as if Google will quote it directly.
+
+			3. INTRODUCTION (1 paragraph, ~80 words)
+			   - Hook the reader. State the problem this article solves.
+			   - Mention who this article is for (developers, sysadmins, tech enthusiasts, etc.).
+
+			4. MAIN BODY (H2 and H3 sections)
+			   - Minimum 5 H2 sections. Use H3 for sub-points.
+			   - Each H2 should address a distinct sub-topic or question a reader would search for.
+			   - Where relevant, include:
+			     * A <ul> or <ol> list for steps, comparisons, or key points.
+			     * A <pre><code class="language-bash"> or <pre><code class="language-python"> block for any commands or code examples (use realistic, useful examples).
+			     * A <table> for any feature comparisons, pros/cons, or benchmarks.
+			   - Back claims with authority: use phrases like "According to [Source/Study]", "In our testing", "Industry benchmarks show". Use realistic placeholders where exact data is unknown.
+
+			5. FAQ SECTION (Schema-ready)
+			   - Add an H2: <h2>Frequently Asked Questions</h2>
+			   - Include 3-4 Q&A pairs. Format each as:
+			     <div class="faq-item">
+			       <h3>Question text here?</h3>
+			       <p>Answer text here (2-4 sentences).</p>
+			     </div>
+			   - Questions must reflect real "People Also Ask" queries for the topic.
+
+			6. CONCLUSION
+			   - H2: <h2>Conclusion</h2>
+			   - Summarize key takeaways in 2-3 sentences.
+			   - End with a clear call-to-action (e.g., "Try it yourself", "Share your experience in the comments", "Explore the official docs").
+
+			--- CONTENT RULES ---
+
+			- Language: English only. Aim for US/global readability (Flesch-Kincaid Grade 8-10).
+			- Target word count: 1,200 - 1,800 words.
+			- No filler phrases like "In conclusion, it is important to note that..." — be direct.
+			- Do NOT include any CSS, <style>, <script>, or <!DOCTYPE> tags.
+			- Output clean, semantic HTML only. No markdown.
+			- Do NOT add any commentary, preamble, or explanation outside the article HTML.
+			PROMPT,
 			esc_html( $topic )
 		);
 	}
