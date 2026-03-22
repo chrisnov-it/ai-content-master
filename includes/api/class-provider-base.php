@@ -54,24 +54,27 @@ abstract class AI_Content_Master_Provider_Base {
      * Helper: extend PHP execution time dan override socket timeout.
      * Dipanggil di awal send_prompt() oleh semua provider.
      */
+    /**
+     * Stores the original socket timeout before overriding.
+     * Declared explicitly to avoid PHP 8.2+ dynamic property deprecation.
+     *
+     * @var string|false
+     */
+    protected $prev_socket_timeout = false;
+
     protected function prepare_execution_environment() {
-        // Extend PHP max_execution_time jika perlu.
         $limit = (int) ini_get( 'max_execution_time' );
         if ( $limit > 0 && $limit < self::REQUEST_TIMEOUT + 30 ) {
             @set_time_limit( self::REQUEST_TIMEOUT + 30 );
         }
-
-        // Override default_socket_timeout (default 60s, terlalu pendek untuk AI responses).
         $this->prev_socket_timeout = ini_get( 'default_socket_timeout' );
         ini_set( 'default_socket_timeout', self::REQUEST_TIMEOUT + 10 );
     }
 
-    /**
-     * Helper: restore socket timeout setelah request selesai.
-     */
     protected function restore_execution_environment() {
-        if ( isset( $this->prev_socket_timeout ) ) {
+        if ( false !== $this->prev_socket_timeout ) {
             ini_set( 'default_socket_timeout', $this->prev_socket_timeout );
+            $this->prev_socket_timeout = false;
         }
     }
 
