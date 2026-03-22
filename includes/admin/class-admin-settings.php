@@ -58,7 +58,7 @@ class AI_Content_Master_Admin_Settings {
             array(
                 'type'              => 'string',
                 'sanitize_callback' => 'sanitize_text_field',
-                'default'           => 'google/gemini-2.0-flash-001:free',
+                'default'           => 'meta-llama/llama-3.3-70b-instruct:free',
             )
         );
 
@@ -109,7 +109,7 @@ class AI_Content_Master_Admin_Settings {
      * Model field render — dynamic dropdown with free-first sorting and Refresh button.
      */
     public function model_field_render() {
-        $selected_model = get_option( 'ai_content_master_openrouter_model', 'google/gemini-2.0-flash-001:free' );
+        $selected_model = get_option( 'ai_content_master_openrouter_model', 'meta-llama/llama-3.3-70b-instruct:free' );
         $api            = AI_Content_Master::get_instance()->get_component( 'api' );
         $models_data    = $api->fetch_available_models();
         $has_error      = is_wp_error( $models_data );
@@ -131,7 +131,7 @@ class AI_Content_Master_Admin_Settings {
             <select id="ai_content_master_openrouter_model" name="ai_content_master_openrouter_model">
 
                 <?php if ( $has_error ) : ?>
-                    <option value="google/gemini-2.0-flash-001:free">Google Gemini 2.0 Flash (Free)</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct:free">Meta Llama 3.3 70B Instruct (Free)</option>
 
                 <?php else : ?>
 

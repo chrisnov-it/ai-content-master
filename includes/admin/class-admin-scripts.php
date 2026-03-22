@@ -80,13 +80,17 @@ class AI_Content_Master_Admin_Scripts {
         }
 
         if ( $is_settings_screen ) {
+            // dashicons adalah stylesheet, bukan script — tidak boleh jadi JS dependency.
+            // WordPress 6.9.1 sekarang strict soal ini.
             wp_enqueue_script(
                 'ai-content-master-settings-js',
                 AI_CONTENT_MASTER_URL . 'js/settings.js',
-                array( 'jquery', 'dashicons' ),
+                array( 'jquery' ),
                 $version,
                 true
             );
+            // Pastikan dashicons stylesheet ter-enqueue terpisah.
+            wp_enqueue_style( 'dashicons' );
             wp_localize_script( 'ai-content-master-settings-js', 'aiContentMasterAjax', $localize_data );
         }
     }

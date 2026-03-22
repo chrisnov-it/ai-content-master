@@ -29,7 +29,7 @@ class AI_Content_Master_OpenRouter_API {
      *
      * @var string
      */
-    const DEFAULT_MODEL = 'google/gemini-2.0-flash-001:free';
+    const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
 
     /**
      * Send prompt to OpenRouter API
@@ -507,56 +507,60 @@ class AI_Content_Master_OpenRouter_API {
      * @return array Fallback models.
      */
     private function get_fallback_models() {
+        // Fallback list: fast & reliable free models per March 2026 OpenRouter data.
+        // Free models first (sorted by reliability), then popular paid options.
         return array(
-            'google/gemini-2.0-flash-001:free' => array(
-                'name' => 'Google Gemini 2.0 Flash (Free)',
-                'pricing' => array('prompt' => '0', 'completion' => '0'),
-                'context_length' => 1048576,
-            ),
+            // --- FREE ---
             'meta-llama/llama-3.3-70b-instruct:free' => array(
-                'name' => 'Meta Llama 3.3 70B Instruct (Free)',
-                'pricing' => array('prompt' => '0', 'completion' => '0'),
+                'name'           => 'Meta Llama 3.3 70B Instruct',
+                'pricing'        => array( 'prompt' => '0', 'completion' => '0' ),
                 'context_length' => 131072,
             ),
-            'google/gemini-2.5-pro' => array(
-                'name' => 'Google Gemini 2.5 Pro',
-                'pricing' => array('prompt' => '0', 'completion' => '0'),
-                'context_length' => 1048576,
+            'google/gemma-3-27b-it:free' => array(
+                'name'           => 'Google Gemma 3 27B',
+                'pricing'        => array( 'prompt' => '0', 'completion' => '0' ),
+                'context_length' => 131072,
             ),
-            'google/gemini-flash-1.5' => array(
-                'name' => 'Google Gemini Flash 1.5',
-                'pricing' => array('prompt' => '0', 'completion' => '0'),
-                'context_length' => 1048576,
+            'mistralai/mistral-small-3.1-24b-instruct:free' => array(
+                'name'           => 'Mistral Small 3.1 24B',
+                'pricing'        => array( 'prompt' => '0', 'completion' => '0' ),
+                'context_length' => 128000,
+            ),
+            'deepseek/deepseek-v3:free' => array(
+                'name'           => 'DeepSeek V3',
+                'pricing'        => array( 'prompt' => '0', 'completion' => '0' ),
+                'context_length' => 163840,
+            ),
+            'microsoft/phi-4:free' => array(
+                'name'           => 'Microsoft Phi-4',
+                'pricing'        => array( 'prompt' => '0', 'completion' => '0' ),
+                'context_length' => 16384,
+            ),
+            // --- PAID ---
+            'openai/gpt-4o-mini' => array(
+                'name'           => 'OpenAI GPT-4o Mini',
+                'pricing'        => array( 'prompt' => '0.00000015', 'completion' => '0.0000006' ),
+                'context_length' => 128000,
             ),
             'openai/gpt-4o' => array(
-                'name' => 'OpenAI GPT-4o',
-                'pricing' => array('prompt' => '0.0000025', 'completion' => '0.00001'),
+                'name'           => 'OpenAI GPT-4o',
+                'pricing'        => array( 'prompt' => '0.0000025', 'completion' => '0.00001' ),
                 'context_length' => 128000,
             ),
-            'openai/gpt-4o-mini' => array(
-                'name' => 'OpenAI GPT-4o Mini',
-                'pricing' => array('prompt' => '0.00000015', 'completion' => '0.0000006'),
-                'context_length' => 128000,
-            ),
-            'anthropic/claude-3.5-sonnet' => array(
-                'name' => 'Anthropic Claude 3.5 Sonnet',
-                'pricing' => array('prompt' => '0.000003', 'completion' => '0.000015'),
+            'anthropic/claude-sonnet-4-6' => array(
+                'name'           => 'Anthropic Claude Sonnet 4.6',
+                'pricing'        => array( 'prompt' => '0.000003', 'completion' => '0.000015' ),
                 'context_length' => 200000,
             ),
-            'meta-llama/llama-3.1-70b-instruct' => array(
-                'name' => 'Meta Llama 3.1 70B',
-                'pricing' => array('prompt' => '0.00000059', 'completion' => '0.00000079'),
-                'context_length' => 131072,
+            'google/gemini-2.5-pro' => array(
+                'name'           => 'Google Gemini 2.5 Pro',
+                'pricing'        => array( 'prompt' => '0.00000125', 'completion' => '0.000010' ),
+                'context_length' => 1048576,
             ),
-            'meta-llama/llama-3.1-8b-instruct' => array(
-                'name' => 'Meta Llama 3.1 8B',
-                'pricing' => array('prompt' => '0.000000055', 'completion' => '0.000000055'),
-                'context_length' => 131072,
-            ),
-            'mistralai/mistral-7b-instruct' => array(
-                'name' => 'Mistral 7B Instruct',
-                'pricing' => array('prompt' => '0.000000055', 'completion' => '0.000000055'),
-                'context_length' => 32768,
+            'deepseek/deepseek-v3' => array(
+                'name'           => 'DeepSeek V3',
+                'pricing'        => array( 'prompt' => '0.00000028', 'completion' => '0.00000089' ),
+                'context_length' => 163840,
             ),
         );
     }
