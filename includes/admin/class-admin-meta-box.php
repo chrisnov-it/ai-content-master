@@ -103,6 +103,7 @@ class AI_Content_Master_Admin_Meta_Box {
 					</button>
 					<span id="ai-content-master-meta-spinner" class="spinner" style="float: none; vertical-align: middle;"></span>
 					<textarea id="ai-content-master-meta-result" rows="3" style="width:100%; font-size: 12px; border-radius: 4px;" placeholder="<?php esc_attr_e( 'AI-generated meta description...', 'ai-content-master' ); ?>"></textarea>
+				<p id="ai-content-master-meta-status" style="margin-top:4px; font-size:11px; min-height:16px;"></p>
 				</div>
 
 				<div style="padding-top: 10px; border-top: 1px solid #eee;">

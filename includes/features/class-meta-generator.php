@@ -82,8 +82,15 @@ class AI_Content_Master_Meta_Generator {
         if (is_wp_error($meta_description)) {
             wp_send_json_error(array('message' => $meta_description->get_error_message()), 500);
         } else {
-            $clean = $this->extract_meta_text( $meta_description );
-            wp_send_json_success(array('meta_description' => $clean));
+            $clean      = $this->extract_meta_text( $meta_description );
+            $seo_plugin = $this->detect_seo_plugin();
+            $saved      = $this->save_meta_to_post( $post_id, $clean, $seo_plugin );
+
+            wp_send_json_success(array(
+                'meta_description' => $clean,
+                'seo_plugin'       => $seo_plugin,
+                'auto_saved'       => $saved,
+            ));
         }
     }
 
@@ -133,6 +140,53 @@ class AI_Content_Master_Meta_Generator {
      * @param string $raw Raw model output.
      * @return string Clean meta description, max 160 chars.
      */
+    /**
+     * Detect which SEO plugin is active on this WordPress installation.
+     *
+     * @return string 'yoast' | 'rankmath' | 'seopress' | 'aioseo' | 'none'
+     */
+    private function detect_seo_plugin() {
+        if ( defined( 'WPSEO_VERSION' ) || class_exists( 'WPSEO_Options' ) ) {
+            return 'yoast';
+        }
+        if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath' ) ) {
+            return 'rankmath';
+        }
+        if ( defined( 'SEOPRESS_VERSION' ) || class_exists( 'SeoPress' ) ) {
+            return 'seopress';
+        }
+        if ( defined( 'AIOSEO_VERSION' ) || class_exists( 'AIOSEO\Plugin\AIOSEO' ) ) {
+            return 'aioseo';
+        }
+        return 'none';
+    }
+
+    /**
+     * Save the generated meta description directly to the correct post_meta key
+     * based on the active SEO plugin. Falls back to a custom key if none detected.
+     *
+     * This writes to the SAME key that each SEO plugin reads — so the value
+     * appears natively in their UI without any conflict or duplication.
+     *
+     * @param int    $post_id    The post ID.
+     * @param string $meta       Clean meta description text.
+     * @param string $seo_plugin Slug of the detected SEO plugin.
+     * @return bool True on success.
+     */
+    private function save_meta_to_post( $post_id, $meta, $seo_plugin ) {
+        $meta_keys = array(
+            'yoast'    => '_yoast_wpseo_metadesc',
+            'rankmath' => 'rank_math_description',
+            'seopress' => '_seopress_titles_desc',
+            'aioseo'   => '_aioseo_description',
+            'none'     => '_ai_content_master_meta_desc', // standalone fallback key
+        );
+
+        $key = $meta_keys[ $seo_plugin ] ?? $meta_keys['none'];
+
+        return (bool) update_post_meta( $post_id, $key, sanitize_text_field( $meta ) );
+    }
+
     private function extract_meta_text( $raw ) {
         $text = trim( $raw );
 

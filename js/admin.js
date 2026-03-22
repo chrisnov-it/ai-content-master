@@ -220,7 +220,22 @@
                 beforeSend: function () { setRequesting(reqKey); },
                 success: function (response) {
                     if (response.success) {
-                        $result.val(response.data.meta_description);
+                        var meta       = response.data.meta_description;
+                        var seoPlugin  = response.data.seo_plugin  || 'none';
+                        var autoSaved  = response.data.auto_saved  || false;
+
+                        // 1. Always show in our textarea.
+                        $result.val(meta);
+
+                        // 2. Update the SEO plugin UI field in real-time (if present).
+                        updateSeoPluginField(seoPlugin, meta);
+
+                        // 3. Show save confirmation.
+                        var savedMsg = autoSaved
+                            ? ' ✅ Auto-saved to ' + seoPluginLabel(seoPlugin) + '.'
+                            : '';
+                        $('#ai-content-master-meta-status').css('color', 'green')
+                            .text('Meta description generated!' + savedMsg);
                     } else {
                         $result.val('Error: ' + (response.data.message || 'Unknown error'));
                     }
@@ -235,6 +250,69 @@
                 }
             });
         });
+
+        // --- SEO Plugin UI Sync Helpers ---
+
+        function seoPluginLabel(slug) {
+            var labels = {
+                'yoast'    : 'Yoast SEO',
+                'rankmath' : 'Rank Math',
+                'seopress' : 'SEOPress',
+                'aioseo'   : 'All in One SEO',
+                'none'     : 'post meta'
+            };
+            return labels[slug] || 'post meta';
+        }
+
+        function updateSeoPluginField(seoPlugin, meta) {
+            switch (seoPlugin) {
+
+                case 'yoast':
+                    // Yoast stores meta in Redux (Gutenberg) or a hidden textarea (Classic).
+                    if (wp.data && wp.data.dispatch('yoast-seo/editor')) {
+                        // Gutenberg + Yoast: dispatch to Yoast Redux store.
+                        wp.data.dispatch('yoast-seo/editor').updateData({ description: meta });
+                    } else {
+                        // Classic Editor: Yoast renders a textarea with id #yoast_wpseo_metadesc.
+                        var $field = $('#yoast_wpseo_metadesc');
+                        if ($field.length) {
+                            $field.val(meta).trigger('input');
+                        }
+                    }
+                    break;
+
+                case 'rankmath':
+                    // Rank Math: hidden input + contenteditable div in Gutenberg sidebar.
+                    if (wp.data && wp.data.dispatch('rank-math')) {
+                        wp.data.dispatch('rank-math').updateMeta('description', meta);
+                    } else {
+                        var $rm = $('#rank-math-description, #rank_math_description');
+                        if ($rm.length) {
+                            $rm.val(meta).trigger('change');
+                        }
+                    }
+                    break;
+
+                case 'seopress':
+                    var $sp = $('#seopress_titles_desc');
+                    if ($sp.length) {
+                        $sp.val(meta).trigger('change');
+                    }
+                    break;
+
+                case 'aioseo':
+                    // AIOSEO uses a custom React component — best effort via input event.
+                    var $aio = $('textarea[name="aioseo_description"], #aioseo-description');
+                    if ($aio.length) {
+                        $aio.val(meta).trigger('input').trigger('change');
+                    }
+                    break;
+
+                default:
+                    // No SEO plugin — nothing extra to update, post_meta already saved.
+                    break;
+            }
+        }
 
         // --- Rephrase Text Feature (Gutenberg + Classic Editor) ---
         $('#ai-content-master-rephrase-btn').on('click', function () {
