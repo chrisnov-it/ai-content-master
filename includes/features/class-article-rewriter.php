@@ -72,9 +72,11 @@ class AI_Content_Master_Article_Rewriter {
             return;
         }
 
-        // Prepare content for rewriting
-        $content = wp_strip_all_tags(strip_shortcodes($post->post_content));
-        $title = $post->post_title;
+        // Prepare content for rewriting.
+        // Truncate ke 4000 karakter untuk batasi token input.
+        $content = wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
+        $content = mb_substr( $content, 0, 4000 );
+        $title   = $post->post_title;
 
         // Validate content
         if (empty(trim($content))) {

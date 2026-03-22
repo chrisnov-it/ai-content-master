@@ -72,13 +72,15 @@ class AI_Content_Master_SEO_Analyzer {
             return;
         }
 
-        // Prepare content for analysis
-        $content = wp_strip_all_tags(strip_shortcodes($post->post_content));
-        $title = $post->post_title;
+        // Prepare content for analysis.
+        // Truncate ke 3000 karakter (~750 tokens) agar tidak boros quota.
+        $content = wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
+        $content = mb_substr( $content, 0, 3000 );
+        $title   = $post->post_title;
 
         // Validate content
-        if (empty(trim($content))) {
-            wp_send_json_error(array('message' => __('Post content is empty. Please write something before analyzing.', 'ai-content-master')), 400);
+        if ( empty( trim( $content ) ) ) {
+            wp_send_json_error( array( 'message' => __( 'Post content is empty. Please write something before analyzing.', 'ai-content-master' ) ), 400 );
             return;
         }
 

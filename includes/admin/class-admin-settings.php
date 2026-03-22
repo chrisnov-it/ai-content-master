@@ -138,16 +138,17 @@ class AI_Content_Master_Admin_Settings {
      */
     public function model_field_render() {
         $selected_model = get_option( 'ai_content_master_openrouter_model', 'meta-llama/llama-3.3-70b-instruct:free' );
-        $api            = AI_Content_Master::get_instance()->get_component( 'api' );
-        $models_data    = $api->fetch_available_models();
-        $has_error      = is_wp_error( $models_data );
+        // Ambil OpenRouter provider langsung — bukan Provider_Manager.
+        $openrouter  = AI_Content_Master::get_instance()->get_component( 'api' )->get_provider( 'openrouter' );
+        $models_data = $openrouter->fetch_available_models();
+        $has_error   = is_wp_error( $models_data );
 
         // Build free/paid split.
         $free_models = array();
         $paid_models = array();
         if ( ! $has_error ) {
             foreach ( $models_data as $model_id => $model_info ) {
-                if ( $api->is_model_free( $model_info ) ) {
+                if ( $openrouter->is_model_free( $model_info ) ) {
                     $free_models[ $model_id ] = $model_info;
                 } else {
                     $paid_models[ $model_id ] = $model_info;

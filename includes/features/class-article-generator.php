@@ -103,61 +103,28 @@ class AI_Content_Master_Article_Generator {
 	 * @return string The generation prompt.
 	 */
 	private function prepare_generation_prompt( $topic ) {
-		return sprintf(
-			<<<'PROMPT'
-			You are a senior technical writer and SEO strategist for an international English-language tech blog. Your goal is to write an article that ranks in Google AI Overviews, wins Featured Snippets, and is genuinely useful to a global developer/tech audience.
+		// PENTING: Jangan gunakan heredoc dengan indentasi — whitespace ikut dikirim ke API
+		// dan memboroskan ribuan tokens. Gunakan string biasa yang dimulai dari kolom 0.
+		$topic = esc_html( $topic );
 
-			TOPIC: "%s"
-
-			--- STRUCTURE REQUIREMENTS ---
-
-			1. TITLE (H1)
-			   - Write one strong, click-worthy H1 title.
-			   - Format: <h1>Your Title Here</h1>
-			   - Include the main keyword naturally. Keep it under 65 characters.
-
-			2. QUICK ANSWER BLOCK (for AI Overview / Featured Snippet)
-			   - Immediately after the H1, write a <div class="quick-answer"> block.
-			   - Contains a <strong>TL;DR:</strong> or <strong>Quick Answer:</strong> followed by a concise 40-60 word direct answer to the topic's main intent.
-			   - This is the most important section — write it as if Google will quote it directly.
-
-			3. INTRODUCTION (1 paragraph, ~80 words)
-			   - Hook the reader. State the problem this article solves.
-			   - Mention who this article is for (developers, sysadmins, tech enthusiasts, etc.).
-
-			4. MAIN BODY (H2 and H3 sections)
-			   - Minimum 5 H2 sections. Use H3 for sub-points.
-			   - Each H2 should address a distinct sub-topic or question a reader would search for.
-			   - Where relevant, include:
-			     * A <ul> or <ol> list for steps, comparisons, or key points.
-			     * A <pre><code class="language-bash"> or <pre><code class="language-python"> block for any commands or code examples (use realistic, useful examples).
-			     * A <table> for any feature comparisons, pros/cons, or benchmarks.
-			   - Back claims with authority: use phrases like "According to [Source/Study]", "In our testing", "Industry benchmarks show". Use realistic placeholders where exact data is unknown.
-
-			5. FAQ SECTION (Schema-ready)
-			   - Add an H2: <h2>Frequently Asked Questions</h2>
-			   - Include 3-4 Q&A pairs. Format each as:
-			     <div class="faq-item">
-			       <h3>Question text here?</h3>
-			       <p>Answer text here (2-4 sentences).</p>
-			     </div>
-			   - Questions must reflect real "People Also Ask" queries for the topic.
-
-			6. CONCLUSION
-			   - H2: <h2>Conclusion</h2>
-			   - Summarize key takeaways in 2-3 sentences.
-			   - End with a clear call-to-action (e.g., "Try it yourself", "Share your experience in the comments", "Explore the official docs").
-
-			--- CONTENT RULES ---
-
-			- Language: English only. Aim for US/global readability (Flesch-Kincaid Grade 8-10).
-			- Target word count: 1,200 - 1,800 words.
-			- No filler phrases like "In conclusion, it is important to note that..." — be direct.
-			- Do NOT include any CSS, <style>, <script>, or <!DOCTYPE> tags.
-			- Output clean, semantic HTML only. No markdown.
-			- Do NOT add any commentary, preamble, or explanation outside the article HTML.
-			PROMPT,
-			esc_html( $topic )
-		);
+		return "You are a senior technical writer and SEO strategist for an international English-language tech blog. Write an article that ranks in Google AI Overviews, wins Featured Snippets, and is useful to a global developer/tech audience.\n"
+			. "\nTOPIC: \"{$topic}\"\n"
+			. "\nOUTPUT: Clean semantic HTML only. No markdown, no CSS/JS tags, no preamble or commentary outside the article HTML.\n"
+			. "\nSTRUCTURE:\n"
+			. "1. <h1> title (under 65 chars, keyword-rich)\n"
+			. "2. <div class=\"quick-answer\"><strong>TL;DR:</strong> [40-60 word direct answer]</div>\n"
+			. "3. Introduction paragraph (~80 words): hook, problem, target audience\n"
+			. "4. Min 5 H2 sections with H3 sub-points. Include where relevant:\n"
+			. "   - <ul>/<ol> for steps or comparisons\n"
+			. "   - <pre><code class=\"language-bash\"> or language-python for code examples\n"
+			. "   - <table> for feature comparisons or benchmarks\n"
+			. "   - Authority phrases: 'According to [Source]', 'In our testing', 'Industry benchmarks show'\n"
+			. "5. FAQ: <h2>Frequently Asked Questions</h2> with 3-4 items formatted as:\n"
+			. "   <div class=\"faq-item\"><h3>Question?</h3><p>Answer (2-4 sentences).</p></div>\n"
+			. "6. <h2>Conclusion</h2>: 2-3 sentence summary + call-to-action\n"
+			. "\nCONTENT RULES:\n"
+			. "- English only, Flesch-Kincaid Grade 8-10\n"
+			. "- Target 1,200-1,800 words\n"
+			. "- No filler phrases, be direct and authoritative";
 	}
 }

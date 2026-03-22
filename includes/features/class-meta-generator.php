@@ -108,14 +108,12 @@ class AI_Content_Master_Meta_Generator {
      * @return string Prepared content.
      */
     private function prepare_content($post) {
-        // Get clean content - strip shortcodes and HTML for a better prompt
-        $content = wp_strip_all_tags(strip_shortcodes($post->post_content));
-
-        // If content is empty, use title as fallback
-        if (empty(trim($content))) {
+        $content = wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
+        // Truncate ke 1500 karakter — meta desc hanya butuh konteks singkat.
+        $content = mb_substr( $content, 0, 1500 );
+        if ( empty( trim( $content ) ) ) {
             $content = $post->post_title;
         }
-
         return $content;
     }
 
