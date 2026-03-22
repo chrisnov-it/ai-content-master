@@ -260,6 +260,7 @@
         $('#ai-content-master-sge-optimize-btn').on('click', function () {
             var buttonId = 'ai-content-master-sge-optimize-btn';
             var reqKey   = 'sge_optimize';
+            var $btn     = $(this);
             var $status  = $('#ai-content-master-sge-status');
             var $spinner = $('#ai-content-master-seo-spinner');
 
@@ -268,7 +269,18 @@
                 return;
             }
 
-            if (!confirm('This will rewrite your article with SGE optimizations applied. The original content will be replaced. Continue?')) {
+            // Use button state instead of confirm() dialog.
+            // confirm() is blocked inside Gutenberg iframe context (WP 6.7+).
+            if ( $btn.data('confirm-pending') ) {
+                // Second click = confirmed, proceed.
+                $btn.removeData('confirm-pending').text('SGE Optimize');
+            } else {
+                // First click = ask for confirmation via button text.
+                $btn.data('confirm-pending', true)
+                    .text('⚠️ Click again to confirm');
+                setTimeout(function() {
+                    $btn.removeData('confirm-pending').text('SGE Optimize');
+                }, 4000);
                 return;
             }
 
@@ -313,7 +325,8 @@
                 },
                 complete: function () {
                     clearRequesting(reqKey);
-                    $('#ai-content-master-analyze-seo-btn, #ai-content-master-sge-optimize-btn').prop('disabled', false);
+                    $('#ai-content-master-analyze-seo-btn').prop('disabled', false);
+                    $btn.prop('disabled', false).text('SGE Optimize');
                     $spinner.css('visibility', 'hidden').hide();
                 }
             });
