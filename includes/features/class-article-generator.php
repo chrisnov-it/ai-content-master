@@ -85,14 +85,63 @@ class AI_Content_Master_Article_Generator {
      * @return string|WP_Error Generated article content or error.
      */
     public function generate_article($topic) {
-        // Increase script execution time for article generation
         @set_time_limit(180);
 
-        // Prepare the prompt
         $prompt = $this->prepare_generation_prompt($topic);
+        $result = $this->get_api()->send_prompt( $prompt );
 
-        // Send to API
-        return $this->get_api()->send_prompt( $prompt );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return $this->sanitize_ai_output( $result );
+    }
+
+    /**
+     * Strip Markdown artefacts from AI output and ensure clean HTML.
+     *
+     * Some free models wrap their response in ```html ... ``` fences
+     * or add stray backticks/asterisks even when instructed not to.
+     * This runs entirely in PHP — zero extra API calls, zero token cost.
+     *
+     * @param string $raw Raw text returned by the AI model.
+     * @return string Clean HTML string.
+     */
+    public function sanitize_ai_output( $raw ) {
+        $output = trim( $raw );
+
+        // 1. Strip ```html ... ``` or ``` ... ``` fences (most common artefact).
+        //    Handles both ```html\n...\n``` and ```\n...\n``` variants.
+        $output = preg_replace( '/^```(?:html)?\s*/i', '', $output );
+        $output = preg_replace( '/\s*```\s*$/', '', $output );
+
+        // 2. Remove any remaining isolated triple-backtick lines.
+        $output = preg_replace( '/^```.*$/m', '', $output );
+
+        // 3. Strip bold/italic Markdown outside of HTML tags
+        //    e.g. **text** -> text, *text* -> text, __text__ -> text
+        //    Use a negative lookahead to avoid touching HTML attributes.
+        $output = preg_replace( '/(?<![\w\/"\'=])\*\*([^*]+)\*\*(?![\w])/', '$1', $output );
+        $output = preg_replace( '/(?<![\w\/"\'=])__([^_]+)__(?![\w])/',     '$1', $output );
+        $output = preg_replace( '/(?<![\w\/"\'=])\*([^*\n]+)\*(?![\w])/',   '$1', $output );
+        $output = preg_replace( '/(?<![\w\/"\'=])_([^_\n]+)_(?![\w])/',     '$1', $output );
+
+        // 4. Convert Markdown-style inline code `code` that appears
+        //    outside an existing <code> tag to <code>code</code>.
+        $output = preg_replace( '/(?<!`)(`[^`\n]+`)(?!`)/', '<code>$1</code>', $output );
+        $output = str_replace( array( '<code>`', '`</code>' ), array( '<code>', '</code>' ), $output );
+
+        // 5. Remove any <!DOCTYPE>, <html>, <head>, <body> wrapper tags
+        //    that some models add despite instructions.
+        $output = preg_replace( '/<!DOCTYPE[^>]*>/i',  '', $output );
+        $output = preg_replace( '/<\/?html[^>]*>/i',   '', $output );
+        $output = preg_replace( '/<head[^>]*>.*?<\/head>/is', '', $output );
+        $output = preg_replace( '/<\/?body[^>]*>/i',   '', $output );
+
+        // 6. Collapse excess blank lines left behind by removals.
+        $output = preg_replace( '/\n{3,}/', "\n\n", $output );
+
+        return trim( $output );
     }
 
 	/**

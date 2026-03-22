@@ -84,13 +84,15 @@ class AI_Content_Master_Article_Rewriter {
             return;
         }
 
-        // Generate rewritten content
         $rewritten_content = $this->rewrite_article($title, $content);
 
         if (is_wp_error($rewritten_content)) {
             wp_send_json_error(array('message' => $rewritten_content->get_error_message()), 500);
         } else {
-            wp_send_json_success(array('rewritten_content' => $rewritten_content));
+            // Sanitize Markdown artefacts before sending to editor.
+            $generator = AI_Content_Master::get_instance()->get_component( 'article_generator' );
+            $clean     = $generator ? $generator->sanitize_ai_output( $rewritten_content ) : $rewritten_content;
+            wp_send_json_success(array('rewritten_content' => $clean));
         }
     }
 
