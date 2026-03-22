@@ -1,0 +1,27 @@
+# Internal docs — tidak dipublikasikan
+ROADMAP.md
+diagnosis_and_solution.md
+
+# WordPress
+*.log
+debug.log
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / temp
+*.zip
+*.tar.gz
+node_modules/
+vendor/
