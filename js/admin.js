@@ -252,6 +252,11 @@
         });
 
         // --- SGE Optimize Feature (One-shot: analyze + rewrite in one API call) ---
+        // Debug: confirm SGE Optimize button found in DOM.
+        if ($('#ai-content-master-sge-optimize-btn').length === 0) {
+            console.warn('AI Content Master: #ai-content-master-sge-optimize-btn not found in DOM.');
+        }
+
         $('#ai-content-master-sge-optimize-btn').on('click', function () {
             var buttonId = 'ai-content-master-sge-optimize-btn';
             var reqKey   = 'sge_optimize';
@@ -345,13 +350,37 @@
                     break;
 
                 case 'rankmath':
-                    // Rank Math: hidden input + contenteditable div in Gutenberg sidebar.
-                    if (wp.data && wp.data.dispatch('rank-math')) {
-                        wp.data.dispatch('rank-math').updateMeta('description', meta);
-                    } else {
-                        var $rm = $('#rank-math-description, #rank_math_description');
-                        if ($rm.length) {
-                            $rm.val(meta).trigger('change');
+                    // Rank Math uses different store names across versions.
+                    // Try each approach in order until one works.
+                    var rmDispatched = false;
+
+                    // v1.0.54+ store name
+                    if ( ! rmDispatched && wp.data && wp.data.dispatch('rank-math') ) {
+                        try {
+                            wp.data.dispatch('rank-math').updateMeta('description', meta);
+                            rmDispatched = true;
+                        } catch(e) {}
+                    }
+                    // Older versions may use 'rank-math/post'
+                    if ( ! rmDispatched && wp.data && wp.data.dispatch('rank-math/post') ) {
+                        try {
+                            wp.data.dispatch('rank-math/post').updateMeta('description', meta);
+                            rmDispatched = true;
+                        } catch(e) {}
+                    }
+                    // Classic Editor fallback: Rank Math renders a textarea
+                    if ( ! rmDispatched ) {
+                        var $rm = $('textarea#rank-math-description, input#rank-math-description, #rank_math_description');
+                        if ( $rm.length ) {
+                            $rm.val(meta).trigger('input').trigger('change');
+                            rmDispatched = true;
+                        }
+                    }
+                    // Gutenberg: Rank Math contenteditable div fallback
+                    if ( ! rmDispatched ) {
+                        var $rmDiv = $('.rank-math-description .components-textarea-control__input, [data-cy="description"]');
+                        if ( $rmDiv.length ) {
+                            $rmDiv.val(meta).trigger('input').trigger('change');
                         }
                     }
                     break;
