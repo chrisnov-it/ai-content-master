@@ -130,7 +130,7 @@ class AI_Content_Master_OpenRouter_API {
      * Timeout in seconds for API calls.
      * High value needed because free models on OpenRouter can be slow.
      */
-    const REQUEST_TIMEOUT = 120;
+    const REQUEST_TIMEOUT = 90;
 
     private function make_api_call($request_data, $api_key) {
         // Force WordPress to respect our timeout value.

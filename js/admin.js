@@ -8,12 +8,32 @@
 
     $(function () {
         // --- Common Helper Functions ---
+
+        // Track in-flight requests to prevent duplicate submissions.
+        var activeRequests = {};
+
+        function isRequesting(key) {
+            return !!activeRequests[key];
+        }
+
+        function setRequesting(key, jqxhr) {
+            activeRequests[key] = jqxhr || true;
+        }
+
+        function clearRequesting(key) {
+            delete activeRequests[key];
+        }
+
         function showSpinner(buttonId) {
-            $('#' + buttonId).next('.spinner').css('visibility', 'visible').show();
+            var $btn = $('#' + buttonId);
+            $btn.prop('disabled', true);
+            $btn.next('.spinner').css('visibility', 'visible').show();
         }
 
         function hideSpinner(buttonId) {
-            $('#' + buttonId).next('.spinner').css('visibility', 'hidden').hide();
+            var $btn = $('#' + buttonId);
+            $btn.prop('disabled', false);
+            $btn.next('.spinner').css('visibility', 'hidden').hide();
         }
 
         function getEditorContent() {
@@ -30,39 +50,45 @@
         // --- Article Generator Feature ---
         $('#ai-content-master-generate-article-btn').on('click', function () {
             var buttonId = 'ai-content-master-generate-article-btn';
-            var $status = $('#ai-content-master-generate-article-status');
-            var topic = $('#ai-content-master-article-topic').val();
+            var reqKey   = 'generate_article';
+            var $status  = $('#ai-content-master-generate-article-status');
+            var topic    = $('#ai-content-master-article-topic').val();
+
+            if (isRequesting(reqKey)) {
+                $status.css('color', 'orange').text('Already generating — please wait...');
+                return;
+            }
 
             if (!topic) {
                 $status.css('color', 'red').text('Please enter a topic.');
                 return;
             }
 
-            // Pastikan aiContentMasterAjax sudah di-localize
             if (typeof aiContentMasterAjax === 'undefined') {
-                console.error('aiContentMasterAjax is not defined');
                 $status.css('color', 'red').text('Configuration error. Please refresh the page.');
                 return;
             }
 
-            // Confirm with user before proceeding
             if (!confirm('This will replace your entire article content with a newly generated article. Are you sure?')) {
                 return;
             }
 
             showSpinner(buttonId);
-            $status.css('color', 'inherit').text('Generating article... This may take a few moments.');
+            $status.css('color', '#2271b1').text('⏳ Generating article... Free models may take up to 60 seconds.');
 
-            $.ajax({
-                url: aiContentMasterAjax.ajax_url,
-                type: 'POST',
+            var jqxhr = $.ajax({
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000, // 130s — slightly above PHP timeout
                 data: {
-                    action: 'ai_content_master_generate_article',
+                    action:   'ai_content_master_generate_article',
                     security: aiContentMasterAjax.nonce,
-                    topic: topic
+                    topic:    topic
+                },
+                beforeSend: function () {
+                    setRequesting(reqKey, jqxhr);
                 },
                 success: function (response) {
-                    console.log('Generate Article AJAX Success:', response); // Debug log
                     if (response.success) {
                         var generatedContent = response.data.generated_article;
                         var articleTitle = '';
@@ -100,17 +126,14 @@
                         $status.css('color', 'red').text('Error: ' + (response.data.message || 'Unknown error'));
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Generate Article AJAX Error Details:', {
-                        status: jqXHR.status,
-                        statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    $status.css('color', 'red').text('AJAX request failed: ' + textStatus + ' (' + jqXHR.status + ')');
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout'
+                        ? 'Request timed out. The model may be overloaded — try again or switch to a faster model.'
+                        : 'AJAX error: ' + textStatus + ' (' + jqXHR.status + ')';
+                    $status.css('color', 'red').text(msg);
                 },
                 complete: function () {
+                    clearRequesting(reqKey);
                     hideSpinner(buttonId);
                 }
             });
@@ -119,50 +142,51 @@
         // --- SEO Analysis Feature ---
         $('#ai-content-master-analyze-seo-btn').on('click', function () {
             var buttonId = 'ai-content-master-analyze-seo-btn';
+            var reqKey   = 'analyze_seo';
             var $resultsWrapper = $('#ai-content-master-seo-results-wrapper');
             var $resultsContent = $('#ai-content-master-seo-results-content');
 
-            // Pastikan aiContentMasterAjax sudah di-localize
+            if (isRequesting(reqKey)) {
+                $resultsContent.html('<p style="color:orange;">Analysis in progress — please wait...</p>');
+                $resultsWrapper.show();
+                return;
+            }
+
             if (typeof aiContentMasterAjax === 'undefined') {
-                console.error('aiContentMasterAjax is not defined');
-                $resultsContent.html('<p style="color: red;">Configuration error. Please refresh the page.</p>');
+                $resultsContent.html('<p style="color:red;">Configuration error. Please refresh the page.</p>');
                 $resultsWrapper.show();
                 return;
             }
 
             showSpinner(buttonId);
-            $resultsContent.html('<p>Analyzing...</p>');
+            $resultsContent.html('<p>⏳ Analyzing content for AI Search & SGE... This may take up to 60 seconds.</p>');
             $resultsWrapper.show();
 
             $.ajax({
-                url: aiContentMasterAjax.ajax_url,
-                type: 'POST',
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000,
                 data: {
-                    action: 'ai_content_master_analyze_seo',
+                    action:   'ai_content_master_analyze_seo',
                     security: aiContentMasterAjax.nonce,
-                    post_id: aiContentMasterAjax.post_id
+                    post_id:  aiContentMasterAjax.post_id
                 },
+                beforeSend: function () { setRequesting(reqKey); },
                 success: function (response) {
-                    console.log('SEO Analysis AJAX Success:', response); // Debug log
                     if (response.success) {
-                        // The response from the API is already HTML formatted
                         $resultsContent.html(response.data.analysis_result);
                     } else {
-                        console.error('API Error:', response.data);
-                        $resultsContent.html('<p style="color: red;"><strong>Error:</strong> ' + (response.data.message || 'Unknown error') + '</p>');
+                        $resultsContent.html('<p style="color:red;"><strong>Error:</strong> ' + (response.data.message || 'Unknown error') + '</p>');
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('SEO Analysis AJAX Error Details:', {
-                        status: jqXHR.status,
-                        statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    $resultsContent.html('<p style="color: red;"><strong>AJAX Error:</strong> Unable to connect to server. (' + textStatus + ' - ' + jqXHR.status + ')</p>');
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout'
+                        ? 'Request timed out. Try switching to a faster model.'
+                        : 'AJAX error: ' + textStatus + ' (' + jqXHR.status + ')';
+                    $resultsContent.html('<p style="color:red;"><strong>Error:</strong> ' + msg + '</p>');
                 },
                 complete: function () {
+                    clearRequesting(reqKey);
                     hideSpinner(buttonId);
                 }
             });
@@ -171,44 +195,42 @@
         // --- Meta Description Generator ---
         $('#ai-content-master-generate-meta-btn').on('click', function () {
             var buttonId = 'ai-content-master-generate-meta-btn';
+            var reqKey   = 'generate_meta';
+            var $result  = $('#ai-content-master-meta-result');
 
-            // Pastikan aiContentMasterAjax sudah di-localize
+            if (isRequesting(reqKey)) return;
+
             if (typeof aiContentMasterAjax === 'undefined') {
-                console.error('aiContentMasterAjax is not defined');
-                alert('Configuration error. Please refresh the page.');
+                $result.val('Configuration error. Please refresh the page.');
                 return;
             }
 
             showSpinner(buttonId);
+            $result.val('⏳ Generating meta description...');
 
             $.ajax({
-                url: aiContentMasterAjax.ajax_url,
-                type: 'POST',
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000,
                 data: {
-                    action: 'ai_content_master_generate_meta',
+                    action:   'ai_content_master_generate_meta',
                     security: aiContentMasterAjax.nonce,
-                    post_id: aiContentMasterAjax.post_id
+                    post_id:  aiContentMasterAjax.post_id
                 },
+                beforeSend: function () { setRequesting(reqKey); },
                 success: function (response) {
-                    console.log('Meta Gen AJAX Success:', response); // Debug log
                     if (response.success) {
-                        $('#ai-content-master-meta-result').val(response.data.meta_description);
+                        $result.val(response.data.meta_description);
                     } else {
-                        console.error('API Error:', response.data);
-                        alert('Error: ' + (response.data.message || 'Unknown error'));
+                        $result.val('Error: ' + (response.data.message || 'Unknown error'));
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Meta Gen AJAX Error Details:', {
-                        status: jqXHR.status,
-                        statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    alert('AJAX request failed: ' + textStatus + ' (' + jqXHR.status + ')');
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout' ? 'Timed out — try a faster model.' : 'Error: ' + textStatus;
+                    $result.val(msg);
                 },
                 complete: function () {
+                    clearRequesting(reqKey);
                     hideSpinner(buttonId);
                 }
             });
@@ -250,16 +272,18 @@
             }
 
             showSpinner(buttonId);
-            $status.css('color', 'inherit').text('Rephrasing...');
+            $status.css('color', '#2271b1').text('⏳ Rephrasing...');
 
             $.ajax({
-                url: aiContentMasterAjax.ajax_url,
-                type: 'POST',
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000,
                 data: {
-                    action: 'ai_content_master_rephrase_text',
-                    security: aiContentMasterAjax.nonce,
+                    action:        'ai_content_master_rephrase_text',
+                    security:      aiContentMasterAjax.nonce,
                     selected_text: selectedText
                 },
+                beforeSend: function () { setRequesting('rephrase'); },
                 success: function (response) {
                     console.log('Rephrase AJAX Success:', response); // Debug log
                     if (response.success) {
@@ -275,17 +299,12 @@
                         $status.css('color', 'red').text('Error: ' + (response.data.message || 'Unknown error'));
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Rephrase AJAX Error Details:', {
-                        status: jqXHR.status,
-                        statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    $status.css('color', 'red').text('AJAX request failed: ' + textStatus + ' (' + jqXHR.status + ')');
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout' ? 'Timed out — try a faster model.' : 'Error: ' + textStatus;
+                    $status.css('color', 'red').text(msg);
                 },
                 complete: function () {
+                    clearRequesting('rephrase');
                     hideSpinner(buttonId);
                 }
             });
@@ -309,16 +328,18 @@
             }
 
             showSpinner(buttonId);
-            $status.css('color', 'inherit').text('Rewriting article...');
+            $status.css('color', '#2271b1').text('⏳ Rewriting article... Free models may take up to 60 seconds.');
 
             $.ajax({
-                url: aiContentMasterAjax.ajax_url,
-                type: 'POST',
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000,
                 data: {
-                    action: 'ai_content_master_rewrite_article',
+                    action:   'ai_content_master_rewrite_article',
                     security: aiContentMasterAjax.nonce,
-                    post_id: aiContentMasterAjax.post_id
+                    post_id:  aiContentMasterAjax.post_id
                 },
+                beforeSend: function () { setRequesting('rewrite'); },
                 success: function (response) {
                     console.log('Rewrite Article AJAX Success:', response); // Debug log
                     if (response.success) {
@@ -340,17 +361,12 @@
                         $status.css('color', 'red').text('Error: ' + (response.data.message || 'Unknown error'));
                     }
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Rewrite Article AJAX Error Details:', {
-                        status: jqXHR.status,
-                        statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        textStatus: textStatus,
-                        errorThrown: errorThrown
-                    });
-                    $status.css('color', 'red').text('AJAX request failed: ' + textStatus + ' (' + jqXHR.status + ')');
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout' ? 'Timed out — try a faster model.' : 'Error: ' + textStatus;
+                    $status.css('color', 'red').text(msg);
                 },
                 complete: function () {
+                    clearRequesting('rewrite');
                     hideSpinner(buttonId);
                 }
             });
