@@ -24,7 +24,7 @@ class AI_Content_Master_Gemini_API extends AI_Content_Master_Provider_Base {
     /**
      * Default model.
      */
-    const DEFAULT_MODEL = 'gemini-2.0-flash';
+    const DEFAULT_MODEL = 'gemini-2.5-flash';
 
     /**
      * Cache key untuk daftar model.
@@ -365,12 +365,15 @@ class AI_Content_Master_Gemini_API extends AI_Content_Master_Provider_Base {
     }
 
     private function get_fallback_models() {
+        // Updated March 2026 based on official Gemini API changelog.
+        // gemini-2.0-flash* deprecated (limit:0 on free tier, shutdown March 31 2026).
+        // gemini-1.5-* shut down September 2025.
         return array(
-            'gemini-2.0-flash'           => array( 'name' => 'Gemini 2.0 Flash',           'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
-            'gemini-2.0-flash-lite'      => array( 'name' => 'Gemini 2.0 Flash Lite',      'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
-            'gemini-2.5-flash-preview'   => array( 'name' => 'Gemini 2.5 Flash (Preview)', 'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
-            'gemini-1.5-flash'           => array( 'name' => 'Gemini 1.5 Flash',           'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
-            'gemini-1.5-pro'             => array( 'name' => 'Gemini 1.5 Pro',             'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 2097152 ),
+            'gemini-3-flash-preview'  => array( 'name' => 'Gemini 3 Flash Preview',  'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
+            'gemini-2.5-flash'        => array( 'name' => 'Gemini 2.5 Flash',        'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
+            'gemini-2.5-flash-lite'   => array( 'name' => 'Gemini 2.5 Flash Lite',   'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 1048576 ),
+            'gemini-2.5-pro'          => array( 'name' => 'Gemini 2.5 Pro',          'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 2097152 ),
+            'gemini-3-pro-preview'    => array( 'name' => 'Gemini 3 Pro Preview',    'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 2097152 ),
         );
     }
 }

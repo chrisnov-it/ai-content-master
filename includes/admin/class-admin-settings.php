@@ -61,7 +61,7 @@ class AI_Content_Master_Admin_Settings {
             'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => '',
         ) );
         register_setting( 'ai_content_master_settings_group', 'ai_content_master_gemini_model', array(
-            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gemini-2.0-flash',
+            'type' => 'string', 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gemini-2.5-flash',
         ) );
 
         // ── Section: Provider Selector ─────────────────────────────────────
@@ -255,14 +255,14 @@ class AI_Content_Master_Admin_Settings {
                     </option>
                 <?php endforeach; ?>
                 <?php if ( is_wp_error( $models ) ) : ?>
-                    <option value="gemini-2.0-flash" selected>Gemini 2.0 Flash</option>
-                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-3-flash-preview" selected>Gemini 3 Flash Preview</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                 <?php endif; ?>
             </select>
         </div>
-        <p class="description"><?php esc_html_e( 'Recommended: Gemini 2.0 Flash — fastest with 1M token context window.', 'ai-content-master' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Recommended: Gemini 3 Flash Preview or Gemini 2.5 Flash — both fast with 1M token context. Note: gemini-2.0-flash is deprecated and will be shut down March 31, 2026.', 'ai-content-master' ); ?></p>
         <?php
     }
 
