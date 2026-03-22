@@ -31,7 +31,7 @@ class AI_Content_Master_OpenRouter_API extends AI_Content_Master_Provider_Base {
         'meta-llama/llama-3.3-70b-instruct:free',
         'google/gemma-3-27b-it:free',
         'mistralai/mistral-small-3.1-24b-instruct:free',
-        'deepseek/deepseek-v3:free',
+        'deepseek/deepseek-chat-v3-0324:free',  // correct ID as of March 2026
         'microsoft/phi-4:free',
         'qwen/qwq-32b:free',
     );
@@ -102,8 +102,17 @@ class AI_Content_Master_OpenRouter_API extends AI_Content_Master_Provider_Base {
                 continue;
             }
 
-            // Any other error (auth, malformed, etc.) — stop immediately,
-            // retrying a different model won't help.
+            // HTTP 400 with "not a valid model ID" — skip to next model.
+            // Other 400s and auth errors (401, 403) — stop immediately.
+            if ( 'api_error_400' === $error_code ) {
+                $msg = $result->get_error_message();
+                if ( stripos( $msg, 'not a valid model' ) !== false
+                    || stripos( $msg, 'invalid model' ) !== false ) {
+                    $this->log( 'Model ' . $model_id . ' invalid on this provider, skipping.' );
+                    continue;
+                }
+            }
+            // Any other error (auth, server error, etc.) — stop immediately.
             break;
         }
 
@@ -496,8 +505,8 @@ class AI_Content_Master_OpenRouter_API extends AI_Content_Master_Provider_Base {
             'mistralai/mistral-small-3.1-24b-instruct:free' => array(
                 'name' => 'Mistral Small 3.1 24B', 'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 128000,
             ),
-            'deepseek/deepseek-v3:free' => array(
-                'name' => 'DeepSeek V3', 'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 163840,
+            'deepseek/deepseek-chat-v3-0324:free' => array(
+                'name' => 'DeepSeek V3 (0324)', 'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 163840,
             ),
             'qwen/qwq-32b:free' => array(
                 'name' => 'Qwen QwQ 32B', 'pricing' => array( 'prompt' => '0', 'completion' => '0' ), 'context_length' => 131072,
