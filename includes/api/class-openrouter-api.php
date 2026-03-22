@@ -139,6 +139,11 @@ class AI_Content_Master_OpenRouter_API {
         $timeout_filter = function() { return self::REQUEST_TIMEOUT; };
         add_filter( 'http_request_timeout', $timeout_filter );
 
+        // Override default_socket_timeout (PHP ini, default 60s) for this request.
+        // Without this, PHP kills the socket before WP timeout fires on long AI responses.
+        $prev_socket_timeout = ini_get( 'default_socket_timeout' );
+        ini_set( 'default_socket_timeout', self::REQUEST_TIMEOUT + 10 );
+
         $args = array(
             'method'      => 'POST',
             'headers'     => array(
@@ -162,8 +167,9 @@ class AI_Content_Master_OpenRouter_API {
 
         $response = wp_remote_post( self::API_URL, $args );
 
-        // Always remove our filter immediately after the request.
+        // Always restore everything immediately after the request.
         remove_filter( 'http_request_timeout', $timeout_filter );
+        ini_set( 'default_socket_timeout', $prev_socket_timeout );
 
         if ( is_wp_error( $response ) ) {
             $error_msg = $response->get_error_message();
