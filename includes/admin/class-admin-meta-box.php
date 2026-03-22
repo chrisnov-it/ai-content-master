@@ -49,7 +49,7 @@ class AI_Content_Master_Admin_Meta_Box {
 	 */
 	public function render_meta_box( $post ) {
 		// Add nonce for security.
-		wp_nonce_field( 'ai_content_master_generate_action', 'ai_content_master_nonce' );
+		wp_nonce_field( 'ai_content_master_ajax_nonce', 'ai_content_master_nonce_field' );
 
 		$api_key = get_option( 'ai_content_master_openrouter_api_key' );
 

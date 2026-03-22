@@ -18,17 +18,13 @@ if (!defined('ABSPATH')) {
 class AI_Content_Master_Article_Generator {
 
     /**
-     * API handler instance
+     * Lazy API getter — resolve hanya saat pertama kali dibutuhkan,
+     * bukan di constructor (mencegah circular dependency & memory spike saat activation).
      *
-     * @var AI_Content_Master_OpenRouter_API
+     * @return AI_Content_Master_OpenRouter_API
      */
-    private $api;
-
-    /**
-     * Constructor
-     */
-    public function __construct() {
-        $this->api = AI_Content_Master::get_instance()->get_component('api');
+    private function get_api() {
+        return AI_Content_Master::get_instance()->get_component( 'api' );
     }
 
     /**
@@ -49,11 +45,11 @@ class AI_Content_Master_Article_Generator {
         }
 
         // Security check - PENTING: pastikan nonce action sama dengan yang di JavaScript
-        if (!check_ajax_referer('ai_content_master_nonce', 'security', false)) {
+        if (!check_ajax_referer('ai_content_master_ajax_nonce', 'security', false)) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('AI Content Master: Nonce verification failed for article generation');
             }
-            wp_send_json_error(array('message' => __('Security check failed.', 'ai-content-master')), 400);
+            wp_send_json_error(array('message' => __('Security check failed.', 'ai-content-master')), 403);
             return;
         }
 
@@ -94,7 +90,7 @@ class AI_Content_Master_Article_Generator {
         $prompt = $this->prepare_generation_prompt($topic);
 
         // Send to API
-        return $this->api->send_prompt($prompt);
+        return $this->get_api()->send_prompt( $prompt );
     }
 
 	/**

@@ -25,40 +25,69 @@ class AI_Content_Master_Admin_Scripts {
     }
 
     /**
-     * Enqueue admin scripts and styles
+     * Enqueue admin scripts and styles.
      *
      * @param string $hook Current admin page hook.
      */
-    public function enqueue_admin_scripts($hook) {
-        // Only load on post edit screens
-        if ('post.php' !== $hook && 'post-new.php' !== $hook) {
+    public function enqueue_admin_scripts( $hook ) {
+        $is_post_screen     = in_array( $hook, array( 'post.php', 'post-new.php' ), true );
+        $is_settings_screen = ( 'settings_page_ai-content-master' === $hook );
+
+        if ( ! $is_post_screen && ! $is_settings_screen ) {
             return;
         }
 
-        // Enqueue the JavaScript file
-        wp_enqueue_script(
-            'ai-content-master-admin-js',
-            AI_CONTENT_MASTER_URL . 'js/admin.js',
-            array('jquery', 'wp-data', 'wp-blocks', 'wp-editor'),
-            AI_Content_Master::get_instance()->get_version(),
-            true
+        $version = AI_Content_Master::get_instance()->get_version();
+
+        // Always enqueue shared CSS.
+        wp_enqueue_style(
+            'ai-content-master-admin-css',
+            AI_CONTENT_MASTER_URL . 'css/admin.css',
+            array( 'dashicons' ),
+            $version
         );
 
-        // Pass data to JavaScript
-        wp_localize_script('ai-content-master-admin-js', 'aiContentMasterAjax', array(
-            'ajax_url'       => admin_url('admin-ajax.php'),
-            'nonce'          => wp_create_nonce('ai_content_master_nonce'),
-            'post_id'        => get_the_ID(),
-            'strings'        => array(
-                'analyzing'         => __('Analyzing...', 'ai-content-master'),
-                'generating'        => __('Generating...', 'ai-content-master'),
-                'rephrasing'        => __('Rephrasing...', 'ai-content-master'),
-                'rewriting'         => __('Rewriting article...', 'ai-content-master'),
-                'confirm_rewrite'   => __('This will replace your entire article content with a rewritten version. Are you sure you want to continue?', 'ai-content-master'),
-                'error_generic'     => __('An error occurred. Please try again.', 'ai-content-master'),
-                'success_rewrite'   => __('Article rewritten successfully!', 'ai-content-master'),
-                'success_rephrase'  => __('Text rephrased successfully!', 'ai-content-master'),
+        // Shared JS data.
+        $localize_data = array(
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce'    => wp_create_nonce( 'ai_content_master_ajax_nonce' ),
+            'post_id'  => get_the_ID(),
+            'strings'  => array(
+                'analyzing'          => __( 'Analyzing...', 'ai-content-master' ),
+                'generating'         => __( 'Generating...', 'ai-content-master' ),
+                'rephrasing'         => __( 'Rephrasing...', 'ai-content-master' ),
+                'rewriting'          => __( 'Rewriting article...', 'ai-content-master' ),
+                'confirm_rewrite'    => __( 'This will replace your entire article content with a rewritten version. Are you sure?', 'ai-content-master' ),
+                'error_generic'      => __( 'An error occurred. Please try again.', 'ai-content-master' ),
+                'success_rewrite'    => __( 'Article rewritten successfully!', 'ai-content-master' ),
+                'success_rephrase'   => __( 'Text rephrased successfully!', 'ai-content-master' ),
+                'refreshing_models'  => __( 'Fetching latest models…', 'ai-content-master' ),
+                'models_refreshed'   => __( 'Model list updated!', 'ai-content-master' ),
+                'models_error'       => __( 'Could not fetch models. Using cached list.', 'ai-content-master' ),
+                'ctx_tokens'         => __( 'Context:', 'ai-content-master' ),
             ),
-        ));
+        );
+
+        if ( $is_post_screen ) {
+            wp_enqueue_script(
+                'ai-content-master-admin-js',
+                AI_CONTENT_MASTER_URL . 'js/admin.js',
+                array( 'jquery', 'wp-data', 'wp-blocks', 'wp-editor' ),
+                $version,
+                true
+            );
+            wp_localize_script( 'ai-content-master-admin-js', 'aiContentMasterAjax', $localize_data );
+        }
+
+        if ( $is_settings_screen ) {
+            wp_enqueue_script(
+                'ai-content-master-settings-js',
+                AI_CONTENT_MASTER_URL . 'js/settings.js',
+                array( 'jquery', 'dashicons' ),
+                $version,
+                true
+            );
+            wp_localize_script( 'ai-content-master-settings-js', 'aiContentMasterAjax', $localize_data );
+        }
     }
 }

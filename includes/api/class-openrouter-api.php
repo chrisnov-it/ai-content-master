@@ -29,7 +29,7 @@ class AI_Content_Master_OpenRouter_API {
      *
      * @var string
      */
-    const DEFAULT_MODEL = 'openai/gpt-oss-120b:free';
+    const DEFAULT_MODEL = 'google/gemini-2.0-flash-001:free';
 
     /**
      * Send prompt to OpenRouter API
@@ -245,30 +245,27 @@ class AI_Content_Master_OpenRouter_API {
     }
 
     /**
-     * Fetch available models from OpenRouter API
+     * Fetch available models from OpenRouter API (with caching).
      *
-     * @return array|WP_Error Array of models or error.
+     * @param bool $force_refresh Skip cache and re-fetch from API.
+     * @return array|WP_Error Array of models sorted free-first, or error.
      */
-    public function fetch_available_models() {
-        // Clear cache for debugging (remove this line in production)
-        delete_transient('ai_content_master_models');
-
-        // Check cache first
-        $cached_models = get_transient('ai_content_master_models');
-        if ($cached_models !== false) {
-            return $cached_models;
+    public function fetch_available_models( $force_refresh = false ) {
+        if ( ! $force_refresh ) {
+            $cached = get_transient( 'ai_content_master_models' );
+            if ( false !== $cached ) {
+                return $cached;
+            }
         }
 
-        // Get API key
-        $api_key = get_option('ai_content_master_openrouter_api_key');
-        if (empty($api_key)) {
-            // Return fallback models if no API key
+        $api_key = get_option( 'ai_content_master_openrouter_api_key' );
+        if ( empty( $api_key ) ) {
             return $this->get_fallback_models();
         }
 
-        // Try without authentication first (some endpoints don't require it)
         $args = array(
             'method'      => 'GET',
+            'headers'     => array( 'Authorization' => 'Bearer ' . $api_key ),
             'timeout'     => 30,
             'redirection' => 5,
             'blocking'    => true,
@@ -276,65 +273,119 @@ class AI_Content_Master_OpenRouter_API {
             'sslverify'   => true,
         );
 
-        $response = wp_remote_get('https://openrouter.ai/api/v1/models', $args);
+        $response = wp_remote_get( 'https://openrouter.ai/api/v1/models', $args );
 
-        // If that fails, try alternative endpoint
-        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
-            $response = wp_remote_get('https://openrouter.ai/api/models', $args);
-        }
-
-        // If that also fails, try with authentication
-        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
-            $args['headers'] = array(
-                'Authorization' => 'Bearer ' . $api_key,
-            );
-            $response = wp_remote_get('https://openrouter.ai/api/v1/models', $args);
-        }
-
-        if (is_wp_error($response)) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('AI Content Master API: Failed to fetch models: ' . $response->get_error_message());
+        if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                $msg = is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_response_code( $response );
+                error_log( 'AI Content Master API: Failed to fetch models: ' . $msg );
             }
             return $this->get_fallback_models();
         }
 
-        $response_code = wp_remote_retrieve_response_code($response);
-        $response_body = wp_remote_retrieve_body($response);
+        $decoded_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-        if ($response_code !== 200) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('AI Content Master API: Models API returned error ' . $response_code);
-            }
-            return $this->get_fallback_models();
-        }
-
-        $decoded_body = json_decode($response_body, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('AI Content Master API: Failed to decode models response');
-            }
-            return $this->get_fallback_models();
-        }
-
-        if (!isset($decoded_body['data']) || !is_array($decoded_body['data'])) {
+        if ( json_last_error() !== JSON_ERROR_NONE || ! isset( $decoded_body['data'] ) || ! is_array( $decoded_body['data'] ) ) {
             return $this->get_fallback_models();
         }
 
         $models = array();
-        foreach ($decoded_body['data'] as $model) {
-            if (isset($model['id']) && isset($model['name'])) {
-                $models[$model['id']] = array(
-                    'name' => $model['name'],
-                    'pricing' => $model['pricing'] ?? array(),
-                    'context_length' => $model['context_length'] ?? 0,
-                );
+        foreach ( $decoded_body['data'] as $model ) {
+            if ( empty( $model['id'] ) || empty( $model['name'] ) ) {
+                continue;
+            }
+            $models[ $model['id'] ] = array(
+                'name'           => $model['name'],
+                'pricing'        => $model['pricing'] ?? array(),
+                'context_length' => $model['context_length'] ?? 0,
+                'description'    => $model['description'] ?? '',
+            );
+        }
+
+        $models = $this->sort_models_free_first( $models );
+
+        // Cache for 1 hour.
+        set_transient( 'ai_content_master_models', $models, HOUR_IN_SECONDS );
+
+        return $models;
+    }
+
+    /**
+     * Sort models so that free models come first, then paid, each group sorted by name.
+     *
+     * @param array $models Unsorted models array.
+     * @return array Sorted models array.
+     */
+    public function sort_models_free_first( $models ) {
+        $free = array();
+        $paid = array();
+
+        foreach ( $models as $id => $info ) {
+            if ( $this->is_model_free( $info ) ) {
+                $free[ $id ] = $info;
+            } else {
+                $paid[ $id ] = $info;
             }
         }
 
-        // Cache for 1 hour
-        set_transient('ai_content_master_models', $models, HOUR_IN_SECONDS);
+        // Sort each group alphabetically by display name.
+        uasort( $free, function( $a, $b ) { return strcmp( $a['name'], $b['name'] ); } );
+        uasort( $paid, function( $a, $b ) { return strcmp( $a['name'], $b['name'] ); } );
 
-        return $models;
+        return array_merge( $free, $paid );
+    }
+
+    /**
+     * AJAX handler: refresh model list (clears cache, re-fetches, returns sorted JSON).
+     */
+    public function ajax_fetch_models() {
+        if ( ! check_ajax_referer( 'ai_content_master_ajax_nonce', 'security', false ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ai-content-master' ) ), 403 );
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ai-content-master' ) ), 403 );
+            return;
+        }
+
+        $force = isset( $_POST['force_refresh'] ) && '1' === $_POST['force_refresh'];
+
+        if ( $force ) {
+            delete_transient( 'ai_content_master_models' );
+        }
+
+        $models = $this->fetch_available_models( $force );
+
+        if ( is_wp_error( $models ) ) {
+            wp_send_json_error( array( 'message' => $models->get_error_message() ) );
+            return;
+        }
+
+        // Build a clean payload for JS: separate free/paid, include context_length.
+        $free = array();
+        $paid = array();
+
+        foreach ( $models as $id => $info ) {
+            $entry = array(
+                'id'             => $id,
+                'name'           => $info['name'],
+                'context_length' => (int) ( $info['context_length'] ?? 0 ),
+                'is_free'        => $this->is_model_free( $info ),
+            );
+            if ( $entry['is_free'] ) {
+                $free[] = $entry;
+            } else {
+                $paid[] = $entry;
+            }
+        }
+
+        wp_send_json_success( array(
+            'free'    => $free,
+            'paid'    => $paid,
+            'total'   => count( $free ) + count( $paid ),
+            'cached'  => ! $force,
+        ) );
     }
 
     /**
@@ -344,10 +395,15 @@ class AI_Content_Master_OpenRouter_API {
      */
     private function get_fallback_models() {
         return array(
-            'openai/gpt-oss-120b:free' => array(
-                'name' => 'OpenAI GPT-OSS 120B (Free)',
+            'google/gemini-2.0-flash-001:free' => array(
+                'name' => 'Google Gemini 2.0 Flash (Free)',
                 'pricing' => array('prompt' => '0', 'completion' => '0'),
-                'context_length' => 128000,
+                'context_length' => 1048576,
+            ),
+            'meta-llama/llama-3.3-70b-instruct:free' => array(
+                'name' => 'Meta Llama 3.3 70B Instruct (Free)',
+                'pricing' => array('prompt' => '0', 'completion' => '0'),
+                'context_length' => 131072,
             ),
             'google/gemini-2.5-pro' => array(
                 'name' => 'Google Gemini 2.5 Pro',

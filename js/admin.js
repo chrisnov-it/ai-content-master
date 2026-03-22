@@ -214,7 +214,7 @@
             });
         });
 
-        // --- Rephrase Text Feature (Gutenberg Integration) ---
+        // --- Rephrase Text Feature (Gutenberg + Classic Editor) ---
         $('#ai-content-master-rephrase-btn').on('click', function () {
             var buttonId = 'ai-content-master-rephrase-btn';
             var $status = $('#ai-content-master-rephrase-status');
@@ -226,13 +226,28 @@
                 return;
             }
 
-            // Get selected text from Gutenberg
-            var selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
-            if (!selectedBlock || !selectedBlock.attributes.content) {
-                $status.css('color', 'red').text('Please select a block with text.');
+            var selectedText = '';
+            var selectedBlock = null;
+
+            // Try Gutenberg first
+            if (wp.data && wp.data.select('core/block-editor')) {
+                selectedBlock = wp.data.select('core/block-editor').getSelectedBlock();
+                if (selectedBlock && selectedBlock.attributes.content) {
+                    selectedText = selectedBlock.attributes.content;
+                }
+            }
+
+            // Fallback: Classic Editor selected text
+            if (!selectedText) {
+                if (typeof tinymce !== 'undefined' && tinymce.get('content') && tinymce.get('content').selection) {
+                    selectedText = tinymce.get('content').selection.getContent({ format: 'html' });
+                }
+            }
+
+            if (!selectedText) {
+                $status.css('color', 'red').text('Please select a paragraph block (Gutenberg) or highlight text (Classic Editor).');
                 return;
             }
-            var selectedText = selectedBlock.attributes.content;
 
             showSpinner(buttonId);
             $status.css('color', 'inherit').text('Rephrasing...');
@@ -248,8 +263,12 @@
                 success: function (response) {
                     console.log('Rephrase AJAX Success:', response); // Debug log
                     if (response.success) {
-                        // Replace the content of the selected block
-                        wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, { content: response.data.rephrased_text });
+                        // Replace content: Gutenberg block or Classic Editor selection
+                        if (selectedBlock && wp.data && wp.data.dispatch('core/block-editor')) {
+                            wp.data.dispatch('core/block-editor').updateBlockAttributes(selectedBlock.clientId, { content: response.data.rephrased_text });
+                        } else if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
+                            tinymce.get('content').selection.setContent(response.data.rephrased_text);
+                        }
                         $status.css('color', 'green').text('Text rephrased successfully!');
                     } else {
                         console.error('API Error:', response.data);

@@ -81,31 +81,41 @@ class AI_Content_Master {
     }
 
     /**
-     * Initialize plugin components
+     * Initialize plugin components.
+     *
+     * Hanya instantiate komponen yang benar-benar dibutuhkan sekarang.
+     * Feature classes di-lazy-load via get_component() saat pertama kali dibutuhkan.
+     * Admin components hanya di-instantiate di area admin.
      */
     private function init_components() {
-        // Initialize API handler (always needed)
+        // API handler selalu dibutuhkan — tapi TIDAK fetch model di sini.
         $this->components['api'] = new AI_Content_Master_OpenRouter_API();
+        $this->init_component( $this->components['api'] );
 
-		// Initialize admin components only if in admin area.
-		if ( is_admin() ) {
-			$this->components['admin_settings'] = new AI_Content_Master_Admin_Settings();
-			$this->components['admin_meta_box'] = new AI_Content_Master_Admin_Meta_Box();
-			$this->components['admin_scripts']  = new AI_Content_Master_Admin_Scripts();
-		}
+        // Admin components: hanya di admin area, dan hanya hook — tidak fetch data.
+        if ( is_admin() ) {
+            $this->components['admin_settings'] = new AI_Content_Master_Admin_Settings();
+            $this->components['admin_meta_box'] = new AI_Content_Master_Admin_Meta_Box();
+            $this->components['admin_scripts']  = new AI_Content_Master_Admin_Scripts();
 
-        // Initialize features
-        $this->components['article_generator'] = new AI_Content_Master_Article_Generator();
-        $this->components['seo_analyzer'] = new AI_Content_Master_SEO_Analyzer();
-        $this->components['meta_generator'] = new AI_Content_Master_Meta_Generator();
-        $this->components['text_rephraser'] = new AI_Content_Master_Text_Rephraser();
-        $this->components['article_rewriter'] = new AI_Content_Master_Article_Rewriter();
-        
-        // Initialize all components immediately
-        foreach ($this->components as $component) {
-            if (method_exists($component, 'init')) {
-                $component->init();
-            }
+            $this->init_component( $this->components['admin_settings'] );
+            $this->init_component( $this->components['admin_meta_box'] );
+            $this->init_component( $this->components['admin_scripts'] );
+        }
+
+        // Feature classes: lazy — hanya register AJAX hooks, tidak instantiate API.
+        // Instantiate sekarang agar hooks terdaftar, tapi API-nya di-resolve saat dibutuhkan.
+        $feature_classes = array(
+            'article_generator' => 'AI_Content_Master_Article_Generator',
+            'seo_analyzer'      => 'AI_Content_Master_SEO_Analyzer',
+            'meta_generator'    => 'AI_Content_Master_Meta_Generator',
+            'text_rephraser'    => 'AI_Content_Master_Text_Rephraser',
+            'article_rewriter'  => 'AI_Content_Master_Article_Rewriter',
+        );
+
+        foreach ( $feature_classes as $key => $class ) {
+            $this->components[ $key ] = new $class();
+            $this->init_component( $this->components[ $key ] );
         }
     }
 
@@ -115,6 +125,8 @@ class AI_Content_Master {
     private function init_hooks() {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'init_plugin'));
+        // AJAX: fetch/refresh model list (settings page)
+        add_action('wp_ajax_ai_content_master_fetch_models', array($this->components['api'], 'ajax_fetch_models'));
     }
 
     /**

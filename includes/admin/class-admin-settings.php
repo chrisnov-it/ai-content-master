@@ -58,7 +58,7 @@ class AI_Content_Master_Admin_Settings {
             array(
                 'type'              => 'string',
                 'sanitize_callback' => 'sanitize_text_field',
-                'default'           => 'openai/gpt-oss-120b:free',
+                'default'           => 'google/gemini-2.0-flash-001:free',
             )
         );
 
@@ -106,68 +106,83 @@ class AI_Content_Master_Admin_Settings {
     }
 
     /**
-     * Model field render
+     * Model field render — dynamic dropdown with free-first sorting and Refresh button.
      */
     public function model_field_render() {
-        $selected_model = get_option('ai_content_master_openrouter_model', 'openai/gpt-oss-120b:free');
+        $selected_model = get_option( 'ai_content_master_openrouter_model', 'google/gemini-2.0-flash-001:free' );
+        $api            = AI_Content_Master::get_instance()->get_component( 'api' );
+        $models_data    = $api->fetch_available_models();
+        $has_error      = is_wp_error( $models_data );
 
-        // Get API instance
-        $api = AI_Content_Master::get_instance()->get_component('api');
-		$models_data = $api->fetch_available_models();
-
-		if ( is_wp_error( $models_data ) ) {
-			// Fallback to basic message if API fails.
-			?>
-			<p><?php esc_html_e( 'Unable to load models. Please save your API key first and refresh this page.', 'ai-content-master' ); ?></p>
-			<select name='ai_content_master_openrouter_model' class='regular-text'>
-				<option value='openai/gpt-oss-120b:free' <?php selected( $selected_model, 'openai/gpt-oss-120b:free' ); ?>>
-					OpenAI GPT-OSS 120B (Free)
-				</option>
-			</select>
-			<?php
-		} else {
-			// Separate free and paid models.
-			$free_models = array();
-			$paid_models = array();
-
-			foreach ( $models_data as $model_id => $model_info ) {
-				if ( $api->is_model_free( $model_info ) ) {
-					$free_models[ $model_id ] = $model_info;
-				} else {
-					$paid_models[ $model_id ] = $model_info;
-				}
-			}
-
-            ?>
-            <select name='ai_content_master_openrouter_model' class='regular-text'>
-                <?php if (!empty($free_models)) : ?>
-                    <optgroup label="<?php esc_attr_e('Free Models', 'ai-content-master'); ?>">
-                        <?php foreach ($free_models as $model_id => $model_info) : ?>
-                            <option value='<?php echo esc_attr($model_id); ?>' <?php selected($selected_model, $model_id); ?>>
-                                <?php echo esc_html($model_info['name'] . ' (Free)'); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </optgroup>
-                <?php endif; ?>
-
-                <?php if (!empty($paid_models)) : ?>
-                    <optgroup label="<?php esc_attr_e('Paid Models', 'ai-content-master'); ?>">
-                        <?php foreach ($paid_models as $model_id => $model_info) : ?>
-                            <option value='<?php echo esc_attr($model_id); ?>' <?php selected($selected_model, $model_id); ?>>
-                                <?php echo esc_html($model_info['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </optgroup>
-                <?php endif; ?>
-            </select>
-            <?php
+        // Build free/paid split.
+        $free_models = array();
+        $paid_models = array();
+        if ( ! $has_error ) {
+            foreach ( $models_data as $model_id => $model_info ) {
+                if ( $api->is_model_free( $model_info ) ) {
+                    $free_models[ $model_id ] = $model_info;
+                } else {
+                    $paid_models[ $model_id ] = $model_info;
+                }
+            }
         }
         ?>
+        <div id="ai-content-master-model-selector-wrap">
+            <select id="ai_content_master_openrouter_model" name="ai_content_master_openrouter_model">
+
+                <?php if ( $has_error ) : ?>
+                    <option value="google/gemini-2.0-flash-001:free">Google Gemini 2.0 Flash (Free)</option>
+
+                <?php else : ?>
+
+                    <?php if ( ! empty( $free_models ) ) : ?>
+                        <optgroup label="✅ <?php esc_attr_e( 'Free Models', 'ai-content-master' ); ?>">
+                            <?php foreach ( $free_models as $model_id => $model_info ) : ?>
+                                <option
+                                    value="<?php echo esc_attr( $model_id ); ?>"
+                                    data-free="1"
+                                    data-ctx="<?php echo esc_attr( (int) ( $model_info['context_length'] ?? 0 ) ); ?>"
+                                    <?php selected( $selected_model, $model_id ); ?>>
+                                    <?php echo esc_html( $model_info['name'] ); ?> — FREE
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+
+                    <?php if ( ! empty( $paid_models ) ) : ?>
+                        <optgroup label="💳 <?php esc_attr_e( 'Paid Models', 'ai-content-master' ); ?>">
+                            <?php foreach ( $paid_models as $model_id => $model_info ) : ?>
+                                <option
+                                    value="<?php echo esc_attr( $model_id ); ?>"
+                                    data-free="0"
+                                    data-ctx="<?php echo esc_attr( (int) ( $model_info['context_length'] ?? 0 ) ); ?>"
+                                    <?php selected( $selected_model, $model_id ); ?>>
+                                    <?php echo esc_html( $model_info['name'] ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+
+                <?php endif; ?>
+            </select>
+
+            <button type="button" id="ai-cm-refresh-models-btn" class="button button-secondary">
+                <span class="dashicons dashicons-update"></span>
+                <?php esc_html_e( 'Refresh Models', 'ai-content-master' ); ?>
+            </button>
+        </div>
+
+        <!-- Model info bar (shown dynamically via JS) -->
+        <div id="ai-cm-model-info">
+            <span id="ai-cm-model-badge" class="ai-cm-badge"></span>
+            <span id="ai-cm-model-ctx" class="ai-cm-ctx"></span>
+            <span id="ai-cm-model-id-display" style="color:#9ca3af; font-size:11px;"></span>
+        </div>
+
+        <p id="ai-cm-model-status"></p>
+
         <p class="description">
-            <?php esc_html_e('Select the AI model to use for content generation.', 'ai-content-master'); ?>
-            <?php if (!is_wp_error($models_data)) : ?>
-                <br><?php esc_html_e('Free models are highlighted and have no usage costs.', 'ai-content-master'); ?>
-            <?php endif; ?>
+            <?php esc_html_e( 'Free models are listed first and cost nothing to use. Click "Refresh Models" to fetch the latest list from OpenRouter.', 'ai-content-master' ); ?>
         </p>
         <?php
     }
@@ -180,7 +195,7 @@ class AI_Content_Master_Admin_Settings {
             return;
         }
         ?>
-        <div class="wrap">
+        <div class="wrap" id="ai-content-master-settings-wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
             <form action="options.php" method="post">
                 <?php

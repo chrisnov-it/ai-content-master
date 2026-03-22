@@ -1,0 +1,161 @@
+/**
+ * AI Content Master - Admin Styles
+ *
+ * @package AIContentMaster
+ * @since 1.1.0
+ */
+
+/* ─── Settings Page ──────────────────────────────────────────────── */
+#ai-content-master-settings-wrap {
+    max-width: 780px;
+}
+
+/* Model Selector */
+#ai-content-master-model-selector-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+#ai_content_master_openrouter_model {
+    min-width: 340px;
+    max-width: 440px;
+    font-size: 13px;
+}
+
+/* Model Info Bar */
+#ai-cm-model-info {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 4px;
+    padding: 7px 12px;
+    background: #f0f6fc;
+    border: 1px solid #c2d7ee;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #1d4060;
+    line-height: 1.4;
+}
+
+#ai-cm-model-info.visible {
+    display: flex;
+}
+
+#ai-cm-model-info .ai-cm-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+#ai-cm-model-info .ai-cm-badge.free {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+#ai-cm-model-info .ai-cm-badge.paid {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+#ai-cm-model-info .ai-cm-ctx {
+    color: #4b5563;
+}
+
+/* Refresh Button */
+#ai-cm-refresh-models-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 4px 10px;
+    height: auto;
+    line-height: 1.6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+#ai-cm-refresh-models-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#ai-cm-refresh-models-btn .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 1;
+}
+
+#ai-cm-refresh-models-btn.spinning .dashicons {
+    animation: ai-cm-spin 0.9s linear infinite;
+}
+
+@keyframes ai-cm-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* Status message below model selector */
+#ai-cm-model-status {
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 18px;
+}
+
+#ai-cm-model-status.error   { color: #b91c1c; }
+#ai-cm-model-status.success { color: #065f46; }
+#ai-cm-model-status.info    { color: #1e40af; }
+
+/* ─── Meta Box Panel ─────────────────────────────────────────────── */
+#ai-content-master-helper {
+    font-size: 13px;
+}
+
+.ai-cm-feature-model-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ai-cm-feature-model-row label {
+    font-size: 11px;
+    color: #666;
+    white-space: nowrap;
+}
+
+.ai-cm-feature-model-row select {
+    font-size: 11px;
+    max-width: 220px;
+    flex: 1;
+}
+
+.ai-cm-badge-inline {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ai-cm-badge-inline.free {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.ai-cm-badge-inline.paid {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
