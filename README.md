@@ -3,6 +3,8 @@
 > **WordPress plugin** untuk transformasi content creation dengan AI — dioptimasi untuk Google AI Overviews, SGE, dan modern search landscape.  
 > Dibuat oleh [Reynov Christian](https://chrisnov.com) · Chrisnov IT Solutions
 
+![Version](https://img.shields.io/badge/version-1.2.0-blue) ![WordPress](https://img.shields.io/badge/WordPress-6.4%2B-21759b) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4) ![License](https://img.shields.io/badge/license-GPL%20v2-green)
+
 ---
 
 ## ✨ Fitur Utama
@@ -103,6 +105,30 @@ Plugin ini mengimplementasikan pendekatan terbaru dalam AI search optimization:
 
 **Reynov Christian** — [chrisnov.com](https://chrisnov.com)  
 Chrisnov IT Solutions · Ruteng, Flores, NTT
+
+## 📋 Changelog
+
+### v1.2.0 *(Maret 2026)*
+- ✨ **Smart Model Selector** — fetch live dari OpenRouter, free models di atas, badge FREE/PAID + context window
+- ✨ **Refresh Models button** — invalidate cache & rebuild dropdown via AJAX tanpa reload
+- ✨ **Test Connection button** — ping test ke OpenRouter langsung dari settings page
+- 🔧 **Fix: Nonce mismatch** — seragamkan semua AJAX handler ke `ai_content_master_ajax_nonce`
+- 🔧 **Fix: Memory exhaustion** — lazy API initialization, hapus circular dependency di constructor
+- 🔧 **Fix: Double `init()`** — refactor ke `init_component()` terpusat
+- 🔧 **Fix: default_socket_timeout** — override per-request untuk handle slow free models
+- 🔧 **Fix: AJAX double-submit** — button disabled + `activeRequests` guard selama request berlangsung
+- 🔧 **Fix: Rephrase feature** — tambah Classic Editor fallback via `tinymce.selection`
+- 🔧 **Fix: Default model** — ganti ke `google/gemini-2.0-flash-001:free` (model lama invalid)
+- 📝 **Upgrade prompt** Article Generator — struktur SGE lengkap: Quick Answer block, FAQ schema-ready, code snippet support
+- 📝 **Tambah `css/admin.css`** dan **`js/settings.js`** untuk settings page
+- 📝 **Tambah ROADMAP.md** — rencana pengembangan berbasis WP 6.9 AI Building Blocks
+
+### v1.0.0 *(Rilis Awal)*
+- 🚀 5 fitur utama: Article Generator, Article Rewriter, SEO Analyzer, Meta Generator, Text Rephraser
+- 🔌 Integrasi OpenRouter API
+- 🧩 Arsitektur modular (Singleton, Autoloader, komponen terpisah)
+
+---
 
 ## 📄 Lisensi
 

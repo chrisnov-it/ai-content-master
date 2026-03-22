@@ -5,7 +5,7 @@
 > - Fitur baru **WordPress 6.9 "Gene"** yang relevan untuk plugin AI
 > - Ekosistem **AI Building Blocks for WordPress** (Abilities API, WP AI Client, MCP Adapter)
 >
-> Diperbarui: **Maret 2026** · Maintainer: Reynov Christian · Chrisnov IT Solutions
+> Versi saat ini: **v1.2.0** · Diperbarui: **Maret 2026** · Maintainer: Reynov Christian · Chrisnov IT Solutions
 
 ---
 
@@ -166,9 +166,9 @@ Artinya: setelah Fase 3 (Abilities API) selesai, **plugin ini bisa dikendalikan 
 ## 📊 Ringkasan Timeline
 
 ```
-v1.1  ✅  Sekarang    Bug fixes + Smart Model Selector
-v1.2  🚧  ~1 bulan   Streaming response + UX improvements
-v1.3  📋  ~2-3 bulan Content history + Bulk generator + Groq provider
+v1.2  ✅  Sekarang    Bug fixes + Smart Model Selector + Test Connection + Upgraded prompt
+v1.3  🚧  ~1 bulan   Streaming response (SSE) + UX improvements
+v1.4  📋  ~2-3 bulan Content history + Bulk generator + Groq provider
 v2.0  🔗  ~4-6 bulan Abilities API + Block Processor + Yoast/RankMath integrasi
 v3.0  🤖  ~8-12 bulan WP AI Client SDK + MCP Adapter (AI agent control)
 ```
