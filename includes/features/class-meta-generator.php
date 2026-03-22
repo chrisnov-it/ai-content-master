@@ -82,7 +82,8 @@ class AI_Content_Master_Meta_Generator {
         if (is_wp_error($meta_description)) {
             wp_send_json_error(array('message' => $meta_description->get_error_message()), 500);
         } else {
-            wp_send_json_success(array('meta_description' => $meta_description));
+            $clean = $this->extract_meta_text( $meta_description );
+            wp_send_json_success(array('meta_description' => $clean));
         }
     }
 
@@ -124,6 +125,45 @@ class AI_Content_Master_Meta_Generator {
      * @param string $content Post content.
      * @return string Meta description prompt.
      */
+    /**
+     * Extract just the meta description text from AI output.
+     * Models often append character counts, explanations, or commentary
+     * after the actual meta description — strip all of that.
+     *
+     * @param string $raw Raw model output.
+     * @return string Clean meta description, max 160 chars.
+     */
+    private function extract_meta_text( $raw ) {
+        $text = trim( $raw );
+
+        // Remove surrounding quotes if model wrapped the description.
+        $text = trim( $text, '"\'' );
+
+        // Strip anything after a newline (character count notes, explanations, etc.)
+        if ( strpos( $text, "\n" ) !== false ) {
+            $lines = explode( "\n", $text );
+            // Take first non-empty line that looks like a meta description (>30 chars).
+            foreach ( $lines as $line ) {
+                $line = trim( $line, '"\' ' );
+                if ( strlen( $line ) > 30 ) {
+                    $text = $line;
+                    break;
+                }
+            }
+        }
+
+        // Strip Markdown bold/italic artefacts.
+        $text = preg_replace( '/\*\*([^*]+)\*\*/', '$1', $text );
+        $text = preg_replace( '/\*([^*]+)\*/', '$1', $text );
+
+        // Hard cap at 160 characters.
+        if ( mb_strlen( $text ) > 160 ) {
+            $text = mb_substr( $text, 0, 157 ) . '...';
+        }
+
+        return trim( $text );
+    }
+
     private function prepare_meta_prompt($title, $content) {
         return sprintf(
             "Generate a concise and compelling SEO meta description (maximum 160 characters) for a blog post titled '%s'. The main content is:\n\n%s",

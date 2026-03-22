@@ -84,13 +84,14 @@ class AI_Content_Master_SEO_Analyzer {
             return;
         }
 
-        // Generate SEO analysis
         $analysis_result = $this->generate_seo_analysis($title, $content);
 
         if (is_wp_error($analysis_result)) {
             wp_send_json_error(array('message' => $analysis_result->get_error_message()), 500);
         } else {
-            wp_send_json_success(array('analysis_result' => $analysis_result));
+            // Convert Markdown to HTML if model ignored our formatting instructions.
+            $clean = $this->markdown_to_html( $analysis_result );
+            wp_send_json_success(array('analysis_result' => $clean));
         }
     }
 
@@ -119,6 +120,54 @@ class AI_Content_Master_SEO_Analyzer {
 	 * @param string $content Post content.
 	 * @return string SEO analysis prompt.
 	 */
+	/**
+	 * Convert Markdown-formatted text to basic HTML for display in the meta box.
+	 * Applied when free models return Markdown instead of HTML despite instructions.
+	 *
+	 * @param string $text Raw model output.
+	 * @return string HTML string safe to inject into the meta box div.
+	 */
+	private function markdown_to_html( $text ) {
+		// Strip code fences first.
+		$text = preg_replace( '/^```[\w]*\s*/m', '', $text );
+		$text = preg_replace( '/\s*```$/m', '', $text );
+
+		// Numbered headings like "1. AI Search & SGE" -> <h4>
+		$text = preg_replace( '/^(\d+\.\s+)(.+)$/m', '<h4>$1$2</h4>', $text );
+
+		// ### heading -> <h4>, ## heading -> <h4>
+		$text = preg_replace( '/^#{2,4}\s+(.+)$/m', '<h4>$1</h4>', $text );
+
+		// **bold** -> <strong>
+		$text = preg_replace( '/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text );
+
+		// * bullet or - bullet lines -> <li>, wrap consecutive <li> in <ul>
+		$text = preg_replace( '/^[\*\-]\s+(.+)$/m', '<li>$1</li>', $text );
+		$text = preg_replace( '/(<li>.*?<\/li>)/s', '<ul>$1</ul>', $text );
+		// Merge adjacent </ul><ul> into one list.
+		$text = preg_replace( '/<\/ul>\s*<ul>/', '', $text );
+
+		// Sub-bullets starting with spaces + * or -
+		$text = preg_replace( '/^\s{2,}[\*\-]\s+(.+)$/m', '<li style="margin-left:16px">$1</li>', $text );
+
+		// Wrap remaining plain paragraphs in <p> (lines not already in a tag).
+		$lines = explode( "\n", $text );
+		$html  = '';
+		foreach ( $lines as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+			if ( preg_match( '/^<[a-z]/', $line ) ) {
+				$html .= $line . "\n";
+			} else {
+				$html .= '<p>' . $line . '</p>' . "\n";
+			}
+		}
+
+		return $html;
+	}
+
 	private function prepare_seo_prompt( $title, $content ) {
 		return sprintf(
 			"You are an elite SEO Strategist specialized in 'Search Generative Experience' (SGE) and AI-driven search. Analyze the following blog post to ensure it ranks in 'AI Overviews' and meets modern quality standards. Provide output in clean HTML format using headings (<h4>), lists (<ul><li>), and bold text (<strong>).\n\n" .
