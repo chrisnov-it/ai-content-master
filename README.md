@@ -3,7 +3,7 @@
 > **WordPress plugin** untuk transformasi content creation dengan AI — dioptimasi untuk Google AI Overviews, SGE, dan modern search landscape.  
 > Dibuat oleh [Reynov Christian](https://chrisnov.com) · Chrisnov IT Solutions
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue) ![WordPress](https://img.shields.io/badge/WordPress-6.4%2B-21759b) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4) ![License](https://img.shields.io/badge/license-GPL%20v2-green)
+![Version](https://img.shields.io/badge/version-1.3.0-blue) ![WordPress](https://img.shields.io/badge/WordPress-6.4%2B-21759b) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4) ![License](https://img.shields.io/badge/license-GPL%20v2-green)
 
 ---
 
@@ -107,6 +107,17 @@ Plugin ini mengimplementasikan pendekatan terbaru dalam AI search optimization:
 Chrisnov IT Solutions · Ruteng, Flores, NTT
 
 ## 📋 Changelog
+
+### v1.3.0 *(Maret 2026)*
+- ✨ **Multi-provider architecture** — OpenRouter + Google Gemini AI Studio as providers
+- ✨ **Multi-model fallback** — automatic fallback chain across free models on 429/timeout
+- ✨ **Per-model blacklisting** — rate-limited models skipped for 15 min, zero manual action needed
+- ✨ **Provider Manager** — single entry point, auto-resolves active provider from settings
+- 🔧 **Fix: Markdown artefacts** — strip ` ```html ` fences, `**bold**`, `*italic*` from AI output
+- 🔧 **Fix: PHP 8.2+ deprecation** — declare `$prev_socket_timeout` explicitly in base class
+- 🔧 **Fix: Gemini deprecated models** — update to Gemini 2.5 Flash / Gemini 3 Flash Preview
+- 🔧 **Fix: dashicons JS dependency** — enqueue as stylesheet separately (WP 6.9.1 strict)
+- 📝 **Updated fallback model list** — Llama 3.3, Gemma 3 27B, Mistral Small 3.1, DeepSeek V3, Phi-4, QwQ 32B
 
 ### v1.2.0 *(Maret 2026)*
 - ✨ **Smart Model Selector** — fetch live dari OpenRouter, free models di atas, badge FREE/PAID + context window

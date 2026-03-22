@@ -3,7 +3,7 @@
  * Plugin Name:       AI Content Master
  * Plugin URI:        https://chrisnov.com/
  * Description:       AI-powered content creation with SGE optimization, smart model selector, and OpenRouter integration. Free models supported.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Author:            Reynov Christian
  * Author URI:        https://chrisnov.com/
  * License:           GPL v2 or later
