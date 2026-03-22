@@ -251,6 +251,65 @@
             });
         });
 
+        // --- SGE Optimize Feature (One-shot: analyze + rewrite in one API call) ---
+        $('#ai-content-master-sge-optimize-btn').on('click', function () {
+            var buttonId = 'ai-content-master-sge-optimize-btn';
+            var reqKey   = 'sge_optimize';
+            var $status  = $('#ai-content-master-sge-status');
+
+            if (isRequesting(reqKey)) {
+                $status.css('color', 'orange').text('Optimization in progress — please wait...');
+                return;
+            }
+
+            if (!confirm('This will rewrite your article with SGE optimizations applied. The original content will be replaced. Continue?')) {
+                return;
+            }
+
+            showSpinner(buttonId);
+            $status.css('color', '#2271b1').text('⏳ Optimizing for AI Search & SGE... This may take up to 60 seconds.');
+
+            $.ajax({
+                url:     aiContentMasterAjax.ajax_url,
+                type:    'POST',
+                timeout: 130000,
+                data: {
+                    action:   'ai_content_master_sge_optimize',
+                    security: aiContentMasterAjax.nonce,
+                    post_id:  aiContentMasterAjax.post_id
+                },
+                beforeSend: function () { setRequesting(reqKey); },
+                success: function (response) {
+                    if (response.success) {
+                        var optimized = response.data.optimized_content;
+
+                        // Update editor — same pattern as Article Generator.
+                        if (wp.data && wp.data.dispatch('core/editor')) {
+                            wp.data.dispatch('core/editor').editPost({ content: optimized });
+                        } else if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
+                            tinymce.get('content').setContent(optimized);
+                        } else {
+                            $('#content').val(optimized);
+                        }
+
+                        $status.css('color', 'green').text('✅ Article optimized for SGE! Review changes before publishing.');
+                    } else {
+                        $status.css('color', 'red').text('Error: ' + (response.data.message || 'Unknown error'));
+                    }
+                },
+                error: function (jqXHR, textStatus) {
+                    var msg = textStatus === 'timeout'
+                        ? 'Timed out — try a faster model.'
+                        : 'AJAX error: ' + textStatus;
+                    $status.css('color', 'red').text(msg);
+                },
+                complete: function () {
+                    clearRequesting(reqKey);
+                    hideSpinner(buttonId);
+                }
+            });
+        });
+
         // --- SEO Plugin UI Sync Helpers ---
 
         function seoPluginLabel(slug) {

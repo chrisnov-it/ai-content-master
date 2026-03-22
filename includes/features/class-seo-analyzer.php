@@ -30,7 +30,8 @@ class AI_Content_Master_SEO_Analyzer {
      * Initialize the feature
      */
     public function init() {
-        add_action('wp_ajax_ai_content_master_analyze_seo', array($this, 'handle_ajax_request'));
+        add_action( 'wp_ajax_ai_content_master_analyze_seo',    array( $this, 'handle_ajax_request' ) );
+        add_action( 'wp_ajax_ai_content_master_sge_optimize',   array( $this, 'handle_optimize_request' ) );
     }
 
     /**
@@ -127,6 +128,80 @@ class AI_Content_Master_SEO_Analyzer {
 	 * @param string $text Raw model output.
 	 * @return string HTML string safe to inject into the meta box div.
 	 */
+	/**
+	 * AJAX handler: One-shot SGE Optimize (Option C).
+	 * Analyze + rewrite in a single API call — no separate analyze step.
+	 * Token-efficient: send truncated content, get back optimized HTML article.
+	 */
+	public function handle_optimize_request() {
+		if ( ! check_ajax_referer( 'ai_content_master_ajax_nonce', 'security', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ai-content-master' ) ), 403 );
+			return;
+		}
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ai-content-master' ) ), 403 );
+			return;
+		}
+
+		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		if ( ! $post_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid Post ID.', 'ai-content-master' ) ), 400 );
+			return;
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			wp_send_json_error( array( 'message' => __( 'Post not found.', 'ai-content-master' ) ), 404 );
+			return;
+		}
+
+		if ( empty( trim( $post->post_content ) ) ) {
+			wp_send_json_error( array( 'message' => __( 'Post content is empty. Please write something first.', 'ai-content-master' ) ), 400 );
+			return;
+		}
+
+		// Truncate to 4000 chars — enough context without wasting tokens.
+		$content = mb_substr( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ), 0, 4000 );
+		$title   = $post->post_title;
+
+		@set_time_limit( 180 );
+		$result = $this->get_api()->send_prompt( $this->prepare_optimize_prompt( $title, $content ) );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
+			return;
+		}
+
+		// Reuse Article Generator sanitizer to clean the output.
+		$generator = AI_Content_Master::get_instance()->get_component( 'article_generator' );
+		$clean     = $generator ? $generator->sanitize_ai_output( $result ) : $result;
+
+		wp_send_json_success( array( 'optimized_content' => $clean ) );
+	}
+
+	/**
+	 * Build the one-shot SGE optimize prompt.
+	 * Token budget: ~200 tokens prompt overhead + article content (truncated).
+	 * No separate analysis output — AI rewrites directly.
+	 *
+	 * @param string $title
+	 * @param string $content
+	 * @return string
+	 */
+	private function prepare_optimize_prompt( $title, $content ) {
+		$title   = esc_html( $title );
+		return "You are an SGE content optimizer. Rewrite the article below to maximize chances of ranking in Google AI Overviews and Featured Snippets. Apply ALL of the following in one pass:\n"
+			. "\n1. Add a <div class=\"quick-answer\"><strong>TL;DR:</strong> [40-60 word direct answer]</div> immediately after the H1.\n"
+			. "2. Ensure min 5 H2 sections. Add or improve H3 sub-points for skimmability.\n"
+			. "3. Add or improve at least one <ul> or <ol> list with key points.\n"
+			. "4. Add or improve a FAQ section: <h2>Frequently Asked Questions</h2> with 3 items as <div class=\"faq-item\"><h3>Q?</h3><p>A.</p></div>.\n"
+			. "5. Strengthen E-E-A-T: add authority phrases like 'According to [source]', 'In our testing', 'Industry data shows'.\n"
+			. "6. Keep the core message, facts, and structure — improve, don't replace.\n"
+			. "\nOUTPUT: Clean semantic HTML only. No markdown, no commentary, no CSS/JS tags.\n"
+			. "\nARTICLE TITLE: {$title}\n"
+			. "\nARTICLE CONTENT:\n{$content}";
+	}
+
 	private function markdown_to_html( $text ) {
 		// Strip code fences first.
 		$text = preg_replace( '/^```[\w]*\s*/m', '', $text );

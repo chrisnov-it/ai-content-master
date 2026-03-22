@@ -80,16 +80,26 @@ class AI_Content_Master_Admin_Meta_Box {
 					<p id="ai-content-master-generate-article-status" style="margin-top: 5px; font-size: 11px;"></p>
 				</div>
 
-				<?php // SEO Analysis Feature. ?>
+				<?php // SEO Analysis + SGE Optimize Feature. ?>
 				<div style="background-color: #f6f7f7; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #dcdcde;">
 					<h4 style="margin-top:0; color: #2c3338;"><span class="dashicons dashicons-chart-area"></span> <?php esc_html_e( 'AI Search Analysis', 'ai-content-master' ); ?></h4>
-					<p style="font-size: 12px; margin-bottom: 10px;"><?php esc_html_e( 'Analyze content for SGE featured snippet potential and E-E-A-T.', 'ai-content-master' ); ?></p>
-					<button type="button" id="ai-content-master-analyze-seo-btn" class="button button-large" style="width: 100%; text-align: center; border-radius: 4px;">
-						<?php esc_html_e( 'Analyze for AI Search', 'ai-content-master' ); ?>
-					</button>
-					<span id="ai-content-master-seo-spinner" class="spinner" style="float: none; vertical-align: middle; display: none; margin-top: 5px;"></span>
+					<p style="font-size: 12px; margin-bottom: 10px;"><?php esc_html_e( 'Analyze content for SGE potential, or optimize it in one shot.', 'ai-content-master' ); ?></p>
 
-					<div id="ai-content-master-seo-results-wrapper" style="border: 1px solid #ccd0d4; padding: 12px; margin-top: 15px; max-height: 450px; overflow-y: auto; display: none; background-color: #fff; border-radius: 4px; font-size: 13px;">
+					<div style="display:flex; gap:6px; margin-bottom:6px;">
+						<button type="button" id="ai-content-master-analyze-seo-btn" class="button" style="flex:1; text-align:center; border-radius:4px;">
+							<span class="dashicons dashicons-visibility" style="vertical-align:middle; font-size:14px;"></span>
+							<?php esc_html_e( 'Analyze', 'ai-content-master' ); ?>
+						</button>
+						<button type="button" id="ai-content-master-sge-optimize-btn" class="button button-primary" style="flex:1; text-align:center; border-radius:4px;">
+							<span class="dashicons dashicons-superhero" style="vertical-align:middle; font-size:14px;"></span>
+							<?php esc_html_e( 'SGE Optimize', 'ai-content-master' ); ?>
+						</button>
+					</div>
+
+					<span id="ai-content-master-seo-spinner" class="spinner" style="float: none; vertical-align: middle; display: none; margin-top: 5px;"></span>
+					<p id="ai-content-master-sge-status" style="margin-top:4px; font-size:11px; min-height:16px;"></p>
+
+					<div id="ai-content-master-seo-results-wrapper" style="border: 1px solid #ccd0d4; padding: 12px; margin-top: 10px; max-height: 450px; overflow-y: auto; display: none; background-color: #fff; border-radius: 4px; font-size: 13px;">
 						<h5 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 8px;"><?php esc_html_e( 'Optimization Report:', 'ai-content-master' ); ?></h5>
 						<div id="ai-content-master-seo-results-content"></div>
 					</div>
